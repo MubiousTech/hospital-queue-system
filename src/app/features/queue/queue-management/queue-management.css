@@ -1,0 +1,357 @@
+.queue-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header */
+.queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.queue-header h2 {
+  color: #2c3e50;
+  font-size: 28px;
+  margin: 0;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* Statistics Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  font-size: 40px;
+}
+
+.stat-content h3 {
+  font-size: 32px;
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+}
+
+.stat-content p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.stat-card.critical { border-left: 4px solid #e74c3c; }
+.stat-card.regular { border-left: 4px solid #3498db; }
+.stat-card.delayed { border-left: 4px solid #f39c12; }
+.stat-card.total { border-left: 4px solid #9b59b6; }
+.stat-card.average { border-left: 4px solid #1abc9c; }
+.stat-card.served { border-left: 4px solid #27ae60; }
+
+/* Priority Sections */
+.priority-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.priority-header {
+  padding: 15px 20px;
+  border-radius: 10px 10px 0 0;
+  color: white;
+  margin-bottom: 0;
+}
+
+.priority-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.priority-header.critical {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.priority-header.regular {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.priority-header.delayed {
+  background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+}
+
+/* Patient List */
+.patient-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Patient Card */
+.patient-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 20px;
+  align-items: start;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.patient-card:hover {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  transform: translateX(5px);
+}
+
+.patient-card.critical { border-left: 5px solid #e74c3c; }
+.patient-card.regular { border-left: 5px solid #3498db; }
+.patient-card.delayed { border-left: 5px solid #f39c12; }
+
+/* Position Badge */
+.position-badge {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+}
+
+.position-badge.critical { background: #e74c3c; }
+.position-badge.regular { background: #3498db; }
+.position-badge.delayed { background: #f39c12; }
+
+/* Patient Info */
+.patient-info {
+  flex: 1;
+}
+
+.patient-info h4 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  color: #2c3e50;
+}
+
+.patient-details {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10px;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.medical-info {
+  margin: 10px 0;
+  color: #34495e;
+  font-size: 15px;
+}
+
+.symptoms {
+  color: #7f8c8d;
+  font-size: 14px;
+  font-style: italic;
+  margin: 5px 0;
+}
+
+/* Vital Signs */
+.vital-signs {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+  padding: 10px;
+  background: #ecf0f1;
+  border-radius: 5px;
+}
+
+.vital {
+  font-size: 13px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+/* Wait Info */
+.wait-info {
+  text-align: center;
+  min-width: 150px;
+}
+
+.wait-time, .estimated-time {
+  margin-bottom: 10px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  color: #7f8c8d;
+  margin-bottom: 5px;
+}
+
+.time {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.time.critical { color: #e74c3c; }
+.time.regular { color: #3498db; }
+.time.delayed { color: #f39c12; }
+
+/* Patient Actions */
+.patient-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 120px;
+}
+
+.patient-actions button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-call {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-call:hover {
+  background: #229954;
+  transform: scale(1.05);
+}
+
+.btn-complete {
+  background: #3498db;
+  color: white;
+}
+
+.btn-complete:hover {
+  background: #2980b9;
+}
+
+.btn-remove {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-remove:hover {
+  background: #c0392b;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  color: #2c3e50;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .patient-card {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .position-badge {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+
+  .patient-actions {
+    flex-direction: row;
+    min-width: auto;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.btn-add {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-add:hover {
+  background: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+}

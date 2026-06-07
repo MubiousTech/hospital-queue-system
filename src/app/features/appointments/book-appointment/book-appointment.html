@@ -1,0 +1,209 @@
+<div class="appointment-container">
+  <div class="appointment-header">
+    <h1>📅 Book Appointment</h1>
+    <p>Schedule your visit with our medical professionals</p>
+  </div>
+
+  <div *ngIf="!showSuccess" class="appointment-form-wrapper">
+    <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" class="appointment-form">
+      
+      <!-- Personal Information Section -->
+      <div class="form-section">
+        <h2>👤 Personal Information</h2>
+
+        <div class="form-group">
+          <label for="patientName">Full Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="patientName" 
+            formControlName="patientName"
+            class="form-control"
+            [class.invalid]="submitted && f['patientName'].errors"
+            placeholder="Enter your full name"
+          />
+          <div *ngIf="submitted && f['patientName'].errors" class="error-message">
+            <span *ngIf="f['patientName'].errors['required']">Name is required</span>
+            <span *ngIf="f['patientName'].errors['minlength']">Name must be at least 3 characters</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="patientEmail">Email Address <span class="required">*</span></label>
+            <input 
+              type="email" 
+              id="patientEmail" 
+              formControlName="patientEmail"
+              class="form-control"
+              [class.invalid]="submitted && f['patientEmail'].errors"
+              placeholder="your.email@example.com"
+            />
+            <div *ngIf="submitted && f['patientEmail'].errors" class="error-message">
+              <span *ngIf="f['patientEmail'].errors['required']">Email is required</span>
+              <span *ngIf="f['patientEmail'].errors['email']">Invalid email format</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="patientPhone">Phone Number <span class="required">*</span></label>
+            <input 
+              type="tel" 
+              id="patientPhone" 
+              formControlName="patientPhone"
+              class="form-control"
+              [class.invalid]="submitted && f['patientPhone'].errors"
+              placeholder="08012345678"
+            />
+            <div *ngIf="submitted && f['patientPhone'].errors" class="error-message">
+              <span *ngIf="f['patientPhone'].errors['required']">Phone is required</span>
+              <span *ngIf="f['patientPhone'].errors['pattern']">Must be 11 digits starting with 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appointment Details Section -->
+      <div class="form-section">
+        <h2>🩺 Appointment Details</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="appointmentType">Appointment Type <span class="required">*</span></label>
+            <select 
+              id="appointmentType" 
+              formControlName="appointmentType"
+              class="form-control"
+              [class.invalid]="submitted && f['appointmentType'].errors"
+            >
+              <option value="">Select appointment type</option>
+              <option *ngFor="let type of appointmentTypes" [value]="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+            <div *ngIf="submitted && f['appointmentType'].errors" class="error-message">
+              <span *ngIf="f['appointmentType'].errors['required']">Appointment type is required</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="doctorName">Preferred Doctor <span class="required">*</span></label>
+            <select 
+              id="doctorName" 
+              formControlName="doctorName"
+              class="form-control"
+              [class.invalid]="submitted && f['doctorName'].errors"
+            >
+              <option value="">Select a doctor</option>
+              <option *ngFor="let doctor of availableDoctors" [value]="doctor">
+                {{ doctor }}
+              </option>
+            </select>
+            <div *ngIf="submitted && f['doctorName'].errors" class="error-message">
+              <span *ngIf="f['doctorName'].errors['required']">Doctor selection is required</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="appointmentDate">Appointment Date <span class="required">*</span></label>
+            <input 
+              type="date" 
+              id="appointmentDate" 
+              formControlName="appointmentDate"
+              class="form-control"
+              [class.invalid]="submitted && f['appointmentDate'].errors"
+            />
+            <div *ngIf="submitted && f['appointmentDate'].errors" class="error-message">
+              <span *ngIf="f['appointmentDate'].errors['required']">Date is required</span>
+              <span *ngIf="f['appointmentDate'].errors['pastDate']">Please select a future date</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="appointmentTime">Preferred Time <span class="required">*</span></label>
+            <select 
+              id="appointmentTime" 
+              formControlName="appointmentTime"
+              class="form-control"
+              [class.invalid]="submitted && f['appointmentTime'].errors"
+              [disabled]="availableSlots.length === 0"
+            >
+              <option value="">Select a time slot</option>
+              <option 
+                *ngFor="let slot of availableSlots" 
+                [value]="slot.time"
+                [disabled]="!slot.available"
+              >
+                {{ slot.time }} {{ slot.available ? '(Available)' : '(Booked)' }}
+              </option>
+            </select>
+            <div *ngIf="submitted && f['appointmentTime'].errors" class="error-message">
+              <span *ngIf="f['appointmentTime'].errors['required']">Time slot is required</span>
+            </div>
+            <small class="helper-text" *ngIf="availableSlots.length === 0 && f['doctorName'].value && f['appointmentDate'].value">
+              No available slots for selected doctor and date
+            </small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reason">Reason for Visit <span class="required">*</span></label>
+          <textarea 
+            id="reason" 
+            formControlName="reason"
+            class="form-control"
+            [class.invalid]="submitted && f['reason'].errors"
+            rows="3"
+            placeholder="Briefly describe the reason for your appointment"
+          ></textarea>
+          <div *ngIf="submitted && f['reason'].errors" class="error-message">
+            <span *ngIf="f['reason'].errors['required']">Reason is required</span>
+            <span *ngIf="f['reason'].errors['minlength']">Please provide at least 10 characters</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Additional Notes (Optional)</label>
+          <textarea 
+            id="notes" 
+            formControlName="notes"
+            class="form-control"
+            rows="2"
+            placeholder="Any additional information for the doctor"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" routerLink="/dashboard">
+          Cancel
+        </button>
+        <button
+    type="button"
+    class="btn btn-primary"
+    (click)="onSubmit()">
+    📅 Book Appointment
+  </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Success Message -->
+  <div *ngIf="showSuccess" class="success-card">
+    <div class="success-icon">✅</div>
+    <h2>Appointment Booked Successfully!</h2>
+    <p class="success-message">
+      Your appointment has been scheduled.
+    </p>
+    <div class="appointment-details">
+      <p><strong>Appointment ID:</strong> {{ bookedAppointmentId }}</p>
+      <p><strong>Doctor:</strong> {{ appointmentForm.get('doctorName')?.value }}</p>
+      <p><strong>Date:</strong> {{ appointmentForm.get('appointmentDate')?.value | date:'fullDate' }}</p>
+      <p><strong>Time:</strong> {{ appointmentForm.get('appointmentTime')?.value }}</p>
+    </div>
+    <p class="redirect-message">
+      You will receive a confirmation email shortly. Redirecting to appointments page...
+    </p>
+  </div>
+</div>

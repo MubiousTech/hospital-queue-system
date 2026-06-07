@@ -1,0 +1,10 @@
+.main-content {
+  display: flex;
+  min-height: calc(100vh - 160px); /* Subtract header and footer height */
+}
+
+.content-area {
+  flex: 1;
+  margin-left: 220px; /* Sidebar width + spacing */
+  padding: 20px;
+}

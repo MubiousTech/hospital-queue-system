@@ -1,0 +1,18 @@
+.hospital-footer {
+  background: #2c3e50;
+  color: white;
+  padding: 20px 0;
+  margin-top: 50px;
+  text-align: center;
+}
+
+.footer-container p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.developer-info {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}

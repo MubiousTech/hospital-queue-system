@@ -1,0 +1,197 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Welcome, {{ currentUser?.firstName }}!</h1>
+    <p class="role-badge" [ngClass]="'role-' + currentUser?.role">
+      {{ currentUser?.role | uppercase }}
+    </p>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div *ngIf="currentUser?.role === userRole.ADMIN" class="dashboard-content">
+    <h2>Admin Dashboard</h2>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon admin-icon">👥</div>
+        <div class="stat-info">
+          <h3>Total Patients in Queue</h3>
+          <p class="stat-number">{{ queueStats?.totalInQueue || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card critical">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-info">
+          <h3>Critical Cases</h3>
+          <p class="stat-number">{{ queueStats?.criticalCount || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-info">
+          <h3>Average Wait Time</h3>
+          <p class="stat-number">{{ queueStats?.averageWaitTime || 0 }} min</p>
+        </div>
+      </div>
+
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <h3>Completed Today</h3>
+          <p class="stat-number">{{ queueStats?.patientsServedToday || 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-primary" (click)="navigateToQueue()">View Queue</button>
+      <button class="btn btn-secondary" (click)="navigateToAddPatient()">Add Patient</button>
+      <button class="btn btn-info" (click)="navigateToAdmin()">Admin Panel</button>
+    </div>
+  </div>
+
+  <!-- Doctor Dashboard -->
+  <div *ngIf="currentUser?.role === userRole.DOCTOR" class="dashboard-content">
+    <h2>Doctor Dashboard</h2>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon doctor-icon">🩺</div>
+        <div class="stat-info">
+          <h3>Patients Waiting</h3>
+          <p class="stat-number">{{ queueStats?.totalInQueue || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card critical">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-info">
+          <h3>Critical Cases</h3>
+          <p class="stat-number">{{ queueStats?.criticalCount || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-info">
+          <h3>Average Wait Time</h3>
+          <p class="stat-number">{{ queueStats?.averageWaitTime || 0 }} min</p>
+        </div>
+      </div>
+
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <h3>Treated Today</h3>
+          <p class="stat-number">{{ queueStats?.patientsServedToday || 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <button class="btn btn-large btn-primary" (click)="navigateToQueue()">
+        📋 View Patient Queue
+      </button>
+      <button class="btn btn-large btn-secondary" (click)="navigateToAddPatient()">
+        ➕ Register New Patient
+      </button>
+    </div>
+  </div>
+
+  <!-- Nurse Dashboard -->
+  <div *ngIf="currentUser?.role === userRole.NURSE" class="dashboard-content">
+    <h2>Nurse Dashboard</h2>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon nurse-icon">💉</div>
+        <div class="stat-info">
+          <h3>Total in Queue</h3>
+          <p class="stat-number">{{ queueStats?.totalInQueue || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card critical">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-info">
+          <h3>Critical Patients</h3>
+          <p class="stat-number">{{ queueStats?.criticalCount || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card warning">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-info">
+          <h3>Regular Cases</h3>
+          <p class="stat-number">{{ queueStats?.regularCount || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <h3>Delayed Cases</h3>
+          <p class="stat-number">{{ queueStats?.delayedCount || 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <button class="btn btn-large btn-primary" (click)="navigateToAddPatient()">
+        ➕ Register New Patient
+      </button>
+      <button class="btn btn-large btn-secondary" (click)="navigateToQueue()">📋 View Queue</button>
+    </div>
+  </div>
+
+  <!-- Patient Dashboard -->
+  <div *ngIf="currentUser?.role === userRole.PATIENT" class="dashboard-content">
+    <h2>Patient Portal</h2>
+
+    <div class="patient-info-card">
+      <div class="patient-icon">👤</div>
+      <div class="patient-details">
+        <h3>{{ currentUser?.firstName }}</h3>
+        <p>Email: {{ currentUser?.email }}</p>
+        <p>Role: Patient</p>
+      </div>
+    </div>
+
+    <div class="patient-features">
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <h3>Book Appointment</h3>
+        <p>Schedule your next visit</p>
+        <button class="btn btn-primary" (click)="navigateToBookAppointment()">Book Now</button>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Medical Records</h3>
+        <p>View your health history</p>
+        <button class="btn btn-secondary" disabled>Coming Soon</button>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">💊</div>
+        <h3>Prescriptions</h3>
+        <p>Check your medications</p>
+        <button class="btn btn-secondary" disabled>Coming Soon</button>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Contact Support</h3>
+        <p>Get help from our team</p>
+        <button class="btn btn-secondary" disabled>Coming Soon</button>
+      </div>
+    </div>
+
+    <div class="info-message">
+      <p>🏥 More patient features will be available soon!</p>
+    </div>
+  </div>
+</div>

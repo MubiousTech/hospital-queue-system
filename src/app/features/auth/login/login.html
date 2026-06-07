@@ -1,0 +1,71 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <span class="logo">🏥</span>
+      <h2>Hospital Queue System</h2>
+      <p>Login to your account</p>
+    </div>
+
+    <!-- Reactive Form -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <!-- Email Field -->
+      <div class="form-group">
+        <label>Email Address</label>
+        <input
+          type="email"
+          formControlName="email"
+          placeholder="doctor@hospital.com"
+          [class.error]="isFieldInvalid('email')"
+        />
+        <span class="error-message" *ngIf="isFieldInvalid('email')">
+          {{ getErrorMessage('email') }}
+        </span>
+      </div>
+
+      <!-- Password Field -->
+      <div class="form-group">
+        <label>Password</label>
+        <input
+          type="password"
+          formControlName="password"
+          placeholder="Enter your password"
+          [class.error]="isFieldInvalid('password')"
+        />
+        <span class="error-message" *ngIf="isFieldInvalid('password')">
+          {{ getErrorMessage('password') }}
+        </span>
+      </div>
+
+      <!-- Role Dropdown -->
+      <div class="form-group">
+        <label>Role</label>
+        <select formControlName="role" [class.error]="isFieldInvalid('role')">
+          <option value="">Select your role</option>
+          <option *ngFor="let role of userRoles" [value]="role">
+            {{ role | titlecase }}
+          </option>
+        </select>
+        <span class="error-message" *ngIf="isFieldInvalid('role')">
+          {{ getErrorMessage('role') }}
+        </span>
+      </div>
+
+      <!-- General Error Message -->
+      <div class="alert-error" *ngIf="loginError">
+        {{ loginError }}
+      </div>
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        class="login-btn"
+        [disabled]="(loginForm.invalid && submitted) || isLoading"
+      >
+        <span *ngIf="!isLoading">Login</span>
+        <span *ngIf="isLoading"> <span class="spinner"></span> Logging in... </span>
+      </button>
+    </form>
+
+    <p class="register-link">Don't have an account? <a routerLink="/register">Register here</a></p>
+  </div>
+</div>

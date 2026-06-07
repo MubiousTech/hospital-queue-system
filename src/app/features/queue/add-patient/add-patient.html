@@ -1,0 +1,242 @@
+<div class="add-patient-container">
+  <div class="form-header">
+    <h2>➕ Register New Patient</h2>
+    <p>Fill in patient information and assign priority level</p>
+  </div>
+
+  <form [formGroup]="patientForm" (ngSubmit)="onSubmit()" class="patient-form">
+    
+    <!-- Patient Information Section -->
+    <div class="form-section">
+      <h3>👤 Patient Information</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            formControlName="firstName"
+            placeholder="Enter first name"
+            [class.error]="isFieldInvalid('firstName')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('firstName')">
+            {{ getErrorMessage('firstName') }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Last Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            formControlName="lastName"
+            placeholder="Enter last name"
+            [class.error]="isFieldInvalid('lastName')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('lastName')">
+            {{ getErrorMessage('lastName') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Age <span class="required">*</span></label>
+          <input 
+            type="number" 
+            formControlName="age"
+            placeholder="Enter age"
+            [class.error]="isFieldInvalid('age')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('age')">
+            {{ getErrorMessage('age') }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Gender <span class="required">*</span></label>
+          <select 
+            formControlName="gender"
+            [class.error]="isFieldInvalid('gender')"
+          >
+            <option value="">Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="error-message" *ngIf="isFieldInvalid('gender')">
+            {{ getErrorMessage('gender') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone Number <span class="required">*</span></label>
+          <input 
+            type="tel" 
+            formControlName="phoneNumber"
+            placeholder="08012345678"
+            [class.error]="isFieldInvalid('phoneNumber')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('phoneNumber')">
+            {{ getErrorMessage('phoneNumber') }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Email (Optional)</label>
+          <input 
+            type="email" 
+            formControlName="email"
+            placeholder="patient@example.com"
+            [class.error]="isFieldInvalid('email')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('email')">
+            {{ getErrorMessage('email') }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Medical Information Section -->
+    <div class="form-section">
+      <h3>🏥 Medical Information</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Medical Condition <span class="required">*</span></label>
+          <select 
+            formControlName="medicalCondition"
+            [class.error]="isFieldInvalid('medicalCondition')"
+          >
+            <option value="">Select condition</option>
+            <option *ngFor="let condition of medicalConditions" [value]="condition">
+              {{ condition }}
+            </option>
+          </select>
+          <span class="error-message" *ngIf="isFieldInvalid('medicalCondition')">
+            {{ getErrorMessage('medicalCondition') }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Priority Level <span class="required">*</span></label>
+          <select 
+            formControlName="priority"
+            [class.error]="isFieldInvalid('priority')"
+          >
+            <option value="">Select priority</option>
+            <option [value]="priorities[0]">🔴 Critical (Life-threatening)</option>
+            <option [value]="priorities[1]">🔵 Regular (Standard care)</option>
+            <option [value]="priorities[2]">🟡 Delayed (Non-urgent)</option>
+          </select>
+          <span class="error-message" *ngIf="isFieldInvalid('priority')">
+            {{ getErrorMessage('priority') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label>Symptoms <span class="required">*</span></label>
+        <textarea 
+          formControlName="symptoms"
+          placeholder="Describe patient symptoms in detail (minimum 10 characters)"
+          rows="4"
+          [class.error]="isFieldInvalid('symptoms')"
+        ></textarea>
+        <span class="error-message" *ngIf="isFieldInvalid('symptoms')">
+          {{ getErrorMessage('symptoms') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Vital Signs Section (shown for critical patients) -->
+    <div class="form-section" *ngIf="showVitalSigns">
+      <h3>💉 Vital Signs <span class="critical-badge">Required for Critical Patients</span></h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Blood Pressure <span class="required">*</span></label>
+          <input 
+            type="text" 
+            formControlName="bloodPressure"
+            placeholder="120/80"
+            [class.error]="isFieldInvalid('bloodPressure')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('bloodPressure')">
+            {{ getErrorMessage('bloodPressure') }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Heart Rate (bpm) <span class="required">*</span></label>
+          <input 
+            type="number" 
+            formControlName="heartRate"
+            placeholder="72"
+            [class.error]="isFieldInvalid('heartRate')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('heartRate')">
+            {{ getErrorMessage('heartRate') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Temperature (°C) <span class="required">*</span></label>
+          <input 
+            type="number" 
+            step="0.1"
+            formControlName="temperature"
+            placeholder="37.0"
+            [class.error]="isFieldInvalid('temperature')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('temperature')">
+            {{ getErrorMessage('temperature') }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Oxygen Saturation (%) <span class="required">*</span></label>
+          <input 
+            type="number" 
+            formControlName="oxygenSaturation"
+            placeholder="98"
+            [class.error]="isFieldInvalid('oxygenSaturation')"
+          />
+          <span class="error-message" *ngIf="isFieldInvalid('oxygenSaturation')">
+            {{ getErrorMessage('oxygenSaturation') }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nurse Notes Section -->
+    <div class="form-section">
+      <h3>📝 Nurse Notes (Optional)</h3>
+      
+      <div class="form-group full-width">
+        <label>Additional Notes</label>
+        <textarea 
+          formControlName="nurseNotes"
+          placeholder="Any additional observations or notes"
+          rows="3"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" class="btn-cancel" (click)="cancel()">
+        Cancel
+      </button>
+      <button type="button" class="btn-reset" (click)="resetForm()">
+        Reset Form
+      </button>
+      <button type="submit" class="btn-submit">
+        ➕ Add to Queue
+      </button>
+    </div>
+  </form>
+</div>

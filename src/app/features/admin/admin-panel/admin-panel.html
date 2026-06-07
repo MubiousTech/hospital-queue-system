@@ -1,0 +1,290 @@
+<div class="admin-container">
+  <div class="admin-header">
+    <h1>🔧 Admin Panel</h1>
+    <button class="btn-back" (click)="navigateToDashboard()">← Back to Dashboard</button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'overview'"
+      (click)="switchTab('overview')">
+      📊 Overview
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'users'"
+      (click)="switchTab('users')">
+      👥 Users
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'queue'"
+      (click)="switchTab('queue')">
+      📋 Queue History
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'settings'"
+      (click)="switchTab('settings')">
+      ⚙️ Settings
+    </button>
+  </div>
+
+   <!-- Overview Tab -->
+  <div *ngIf="activeTab === 'overview'" class="tab-content">
+    <h2>System Overview</h2>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+          <h3>Total Users</h3>
+          <p class="stat-number">{{ systemUsers.length }}</p>
+        </div>
+      </div>
+
+<div class="stat-card">
+  <div class="stat-icon">🩺</div>
+  <div class="stat-info">
+    <h3>Active Doctors</h3>
+    <p class="stat-number">{{ getDoctorCount() }}</p>
+  </div>
+</div>
+
+ <div class="stat-card">
+  <div class="stat-icon">💉</div>
+  <div class="stat-info">
+    <h3>Active Nurses</h3>
+    <p class="stat-number">{{ getNurseCount() }}</p>
+  </div>
+</div>
+
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <h3>Queue Status</h3>
+          <p class="stat-number">{{ queueStats?.totalInQueue || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card critical">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-info">
+          <h3>Critical Cases</h3>
+          <p class="stat-number">{{ queueStats?.criticalCount || 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <h3>Completed Today</h3>
+          <p class="stat-number">{{ queueStats?.patientsServedToday|| 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <button class="btn btn-primary" (click)="navigateToQueue()">
+        View Queue
+      </button>
+      <button class="btn btn-secondary" (click)="exportData()">
+        Export Reports
+      </button>
+    </div>
+  </div>
+
+  <!-- Users Tab -->
+  <div *ngIf="activeTab === 'users'" class="tab-content">
+    <div class="users-header">
+      <h2>User Management</h2>
+      <button class="btn btn-primary" (click)="addNewUser()">
+        ➕ Add New User
+      </button>
+    </div>
+
+    <div class="filters">
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="🔍 Search by name or email..."
+        [(ngModel)]="searchTerm"
+        (input)="filterUsers()"
+      />
+
+      <select 
+        class="role-filter" 
+        [(ngModel)]="selectedRole"
+        (change)="filterUsers()">
+        <option value="all">All Roles</option>
+        <option value="ADMIN">Admin</option>
+        <option value="DOCTOR">Doctor</option>
+        <option value="NURSE">Nurse</option>
+        <option value="PATIENT">Patient</option>
+      </select>
+    </div>
+
+    <div class="users-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last Login</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of filteredUsers">
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <span class="role-badge" [class]="'role-' + user.role.toLowerCase()">
+                {{ user.role }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [class.active]="user.status === 'Active'">
+                {{ user.status }}
+              </span>
+            </td>
+            <td>{{ user.lastLogin | date:'short' }}</td>
+            <td class="actions">
+              <button 
+                class="btn-action btn-toggle" 
+                (click)="toggleUserStatus(user.id)"
+                [title]="user.status === 'Active' ? 'Deactivate' : 'Activate'">
+                {{ user.status === 'Active' ? '🔒' : '🔓' }}
+              </button>
+              <button 
+                class="btn-action btn-delete" 
+                (click)="deleteUser(user.id)"
+                title="Delete User">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p *ngIf="filteredUsers.length === 0" class="no-results">
+        No users found matching your search criteria.
+      </p>
+    </div>
+  </div>
+
+  <!-- Queue History Tab -->
+  <div *ngIf="activeTab === 'queue'" class="tab-content">
+    <h2>Queue History</h2>
+
+    <div class="queue-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Queue #</th>
+            <th>Patient Name</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Arrival Time</th>
+            <th>Wait Time</th>
+            <th>Assigned Doctor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of allQueueEntries">
+            <td><strong>#{{ entry.queuePosition }}</strong></td>
+            <td>{{ entry.patient.firstName }}</td>
+            <td>
+              <span class="priority-badge" [ngClass]="getPriorityClass(entry.priority)">
+                {{ entry.priority }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(entry.status)">
+                {{ entry.status }}
+              </span>
+            </td>
+            <td>{{ entry.arrivalTime | date:'short' }}</td>
+            <td>{{ entry.estimatedWaitTime }} min</td>
+            <td>{{ entry.assignedDoctor || 'Not assigned' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p *ngIf="allQueueEntries.length === 0" class="no-results">
+        No queue entries available.
+      </p>
+    </div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div *ngIf="activeTab === 'settings'" class="tab-content">
+    <h2>System Settings</h2>
+
+    <div class="settings-sections">
+      <div class="setting-card">
+        <h3>🔔 Notifications</h3>
+        <div class="setting-option">
+          <label>
+            <input type="checkbox" checked />
+            Enable email notifications
+          </label>
+        </div>
+        <div class="setting-option">
+          <label>
+            <input type="checkbox" checked />
+            Send SMS alerts for critical cases
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <h3>⏰ Queue Settings</h3>
+        <div class="setting-option">
+          <label>Average consultation time (minutes):</label>
+          <input type="number" class="setting-input" value="15" />
+        </div>
+        <div class="setting-option">
+          <label>Auto-refresh interval (seconds):</label>
+          <input type="number" class="setting-input" value="30" />
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <h3>🏥 Hospital Information</h3>
+        <div class="setting-option">
+          <label>Hospital Name:</label>
+          <input type="text" class="setting-input" value="General Hospital Lagos" />
+        </div>
+        <div class="setting-option">
+          <label>Contact Number:</label>
+          <input type="text" class="setting-input" value="+234 800 123 4567" />
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <h3>🔒 Security</h3>
+        <div class="setting-option">
+          <label>
+            <input type="checkbox" checked />
+            Require password change every 90 days
+          </label>
+        </div>
+        <div class="setting-option">
+          <label>
+            <input type="checkbox" />
+            Enable two-factor authentication
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary save-btn">
+      💾 Save Settings
+    </button>
+  </div>
+</div>

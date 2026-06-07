@@ -1,0 +1,188 @@
+<div class="appointments-container">
+  <div class="appointments-header">
+    <div class="header-left">
+      <h1>📅 My Appointments</h1>
+      <p>Manage and view all your scheduled appointments</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary" routerLink="/appointments/book">
+        ➕ Book New Appointment
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-info">
+        <h3>Total Appointments</h3>
+        <p class="stat-number">{{ appointments.length }}</p>
+      </div>
+    </div>
+
+    <div class="stat-card upcoming">
+      <div class="stat-icon">⏰</div>
+      <div class="stat-info">
+        <h3>Upcoming</h3>
+        <p class="stat-number">{{ getUpcomingCount() }}</p>
+      </div>
+    </div>
+
+    <div class="stat-card today">
+      <div class="stat-icon">📆</div>
+      <div class="stat-info">
+        <h3>Today</h3>
+        <p class="stat-number">{{ getTodayCount() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="🔍 Search by patient, doctor, or reason..."
+        [(ngModel)]="searchTerm"
+        (input)="applyFilters()"
+      />
+    </div>
+
+    <div class="filter-group">
+      <select 
+        class="filter-select" 
+        [(ngModel)]="filterStatus"
+        (change)="applyFilters()">
+        <option value="all">All Status</option>
+        <option value="SCHEDULED">Scheduled</option>
+        <option value="CONFIRMED">Confirmed</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="NO_SHOW">No Show</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <input 
+        type="date" 
+        class="filter-date" 
+        [(ngModel)]="filterDate"
+        (change)="applyFilters()"
+      />
+    </div>
+
+    <button class="btn-clear" (click)="filterStatus='all'; filterDate=''; searchTerm=''; applyFilters()">
+      Clear Filters
+    </button>
+  </div>
+
+  <!-- Appointments List -->
+  <div class="appointments-list">
+    <div *ngIf="filteredAppointments.length === 0" class="no-appointments">
+      <div class="empty-icon">📭</div>
+      <h3>No appointments found</h3>
+      <p>Try adjusting your filters or book a new appointment</p>
+      <button class="btn btn-primary" routerLink="/appointments/book">
+        Book Your First Appointment
+      </button>
+    </div>
+
+    <div 
+      *ngFor="let appointment of filteredAppointments" 
+      class="appointment-card"
+      [class.past]="isPast(appointment)"
+    >
+      <div class="appointment-header">
+        <div class="appointment-type">
+          <span class="type-icon">{{ getAppointmentTypeIcon(appointment.appointmentType) }}</span>
+          <span class="type-text">{{ appointment.appointmentType | titlecase }}</span>
+        </div>
+        <span class="status-badge" [ngClass]="getStatusClass(appointment.status)">
+          {{ appointment.status }}
+        </span>
+      </div>
+
+      <div class="appointment-body">
+        <div class="appointment-info">
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">👤 Patient:</span>
+              <span class="info-value">{{ appointment.patientName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">🩺 Doctor:</span>
+              <span class="info-value">{{ appointment.doctorName }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">📅 Date:</span>
+              <span class="info-value">{{ appointment.appointmentDate | date:'fullDate' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">⏰ Time:</span>
+              <span class="info-value">{{ appointment.appointmentTime }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-item full-width">
+              <span class="info-label">📝 Reason:</span>
+              <span class="info-value">{{ appointment.reason }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="appointment.notes" class="info-row">
+            <div class="info-item full-width">
+              <span class="info-label">💬 Notes:</span>
+              <span class="info-value notes">{{ appointment.notes }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">📞 Contact:</span>
+              <span class="info-value">{{ appointment.patientPhone }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">📧 Email:</span>
+              <span class="info-value">{{ appointment.patientEmail }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="appointment-actions">
+        <button 
+          *ngIf="appointment.status === AppointmentStatus.SCHEDULED && isUpcoming(appointment)"
+          class="btn-action btn-confirm"
+          (click)="confirmAppointment(appointment.id)">
+          ✅ Confirm
+        </button>
+
+        <button 
+          *ngIf="(appointment.status === AppointmentStatus.SCHEDULED || appointment.status === AppointmentStatus.CONFIRMED) && isUpcoming(appointment)"
+          class="btn-action btn-cancel"
+          (click)="cancelAppointment(appointment.id)">
+          ❌ Cancel
+        </button>
+
+        <button 
+          class="btn-action btn-delete"
+          (click)="deleteAppointment(appointment.id)">
+          🗑️ Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back to Dashboard -->
+  <div class="back-section">
+    <button class="btn btn-secondary" routerLink="/dashboard">
+      ← Back to Dashboard
+    </button>
+  </div>
+</div>
