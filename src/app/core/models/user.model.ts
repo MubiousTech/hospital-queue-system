@@ -1,9 +1,7 @@
-// User interface - defines the structure of user data
-
 export interface User {
-  id?: number; //Optional: auto-generated
+  id?: string;        // Appwrite uses string IDs
   email: string;
-  password: string;
+  password?: string;  // Optional — never stored after login
   role: UserRole;
   firstName?: string;
   lastName?: string;
@@ -11,25 +9,22 @@ export interface User {
   createdAt?: Date;
 }
 
-//User role enum - restricts role values to specific options
 export enum UserRole {
-    ADMIN = 'admin',
-    DOCTOR = 'doctor',
-    NURSE = 'nurse',
-    PATIENT = 'patient'
+  ADMIN = 'admin',
+  DOCTOR = 'doctor',
+  NURSE = 'nurse',
+  PATIENT = 'patient'
 }
 
-//Login request interface - data sent to backend
 export interface LoginRequest {
-    email: string;
-    password: string;
-    role: string;
+  email: string;
+  password: string;
+  role: string;
 }
 
-//Login response interface - data received from backend
 export interface LoginResponse {
-    success: boolean;
-    token?: string;     //JWT token for authentication
-    user?: User;
-    message?: string;
+  success: boolean;
+  token?: string;
+  user?: User;
+  message?: string;
 }

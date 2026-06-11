@@ -13,10 +13,7 @@ import {
 
 @Component({
   selector: 'app-queue-management',
-  imports: [
-    CommonModule,
-    RouterLink
-  ],
+  imports: [CommonModule, RouterLink],
   templateUrl: './queue-management.html',
   styleUrl: './queue-management.css',
 })
@@ -24,7 +21,7 @@ export class QueueManagement implements OnInit, OnDestroy {
   queueEntries: QueueEntry[] = [];
   queueStats: QueueStats | null = null;
   currentUser: any = null;
-  
+
   private queueSubscription?: Subscription;
   private refreshSubscription?: Subscription;
 
@@ -34,7 +31,7 @@ export class QueueManagement implements OnInit, OnDestroy {
 
   constructor(
     private queueService: Queue,
-    private authService: Auth
+    private authService: Auth,
   ) {}
 
   ngOnInit(): void {
@@ -42,13 +39,11 @@ export class QueueManagement implements OnInit, OnDestroy {
     this.currentUser = this.authService.currentUserValue;
 
     // Subscribe to queue updates
-    this.queueSubscription = this.queueService.queue$.subscribe(
-      queue => {
-        this.queueEntries = queue;
-        this.queueStats = this.queueService.getQueueStats();
-        console.log('🔄 Queue updated:', this.queueEntries.length, 'entries');
-      }
-    );
+    this.queueSubscription = this.queueService.queue$.subscribe((queue) => {
+      this.queueEntries = queue;
+      this.queueStats = this.queueService.getQueueStats();
+      console.log('🔄 Queue updated:', this.queueEntries.length, 'entries');
+    });
 
     // Auto-refresh every 30 seconds (simulates real-time updates)
     this.refreshSubscription = interval(30000).subscribe(() => {
@@ -79,7 +74,7 @@ export class QueueManagement implements OnInit, OnDestroy {
    */
   getPatientsByPriority(priority: PatientPriority): QueueEntry[] {
     return this.queueEntries.filter(
-      entry => entry.priority === priority && entry.status === QueueStatus.WAITING
+      (entry) => entry.priority === priority && entry.status === QueueStatus.WAITING,
     );
   }
 
@@ -88,13 +83,19 @@ export class QueueManagement implements OnInit, OnDestroy {
    */
   callNextPatient(): void {
     const doctorName = this.currentUser?.firstName || 'Dr. Unknown';
-    const nextPatient = this.queueService.callNextPatient(doctorName);
-    
-    if (nextPatient) {
-      alert(`🔔 Now calling: ${nextPatient.patient.firstName} ${nextPatient.patient.lastName}\nPlease proceed to consultation room.`);
-    } else {
-      alert('⚠️ No patients in queue');
-    }
+
+    this.queueService
+      .callNextPatient(doctorName)
+      .then((nextPatient) => {
+        if (nextPatient) {
+          alert(
+            `🔔 Now calling: ${nextPatient.patient.firstName} ${nextPatient.patient.lastName}\nPlease proceed to consultation room.`,
+          );
+        } else {
+          alert('⚠️ No patients in queue');
+        }
+      })
+      .catch(() => alert('❌ Failed to call next patient. Please try again.'));
   }
 
   /**
@@ -102,8 +103,12 @@ export class QueueManagement implements OnInit, OnDestroy {
    */
   completePatient(queueEntryId: string, patientName: string): void {
     if (confirm(`Mark ${patientName} as completed?`)) {
-      this.queueService.completePatient(queueEntryId);
-      alert(`✅ ${patientName} has been marked as completed.`);
+      this.queueService
+        .completePatient(queueEntryId)
+        .then(() => {
+          alert(`✅ ${patientName} has been marked as completed.`);
+        })
+        .catch(() => alert('❌ Failed to complete patient. Please try again.'));
     }
   }
 
@@ -112,11 +117,14 @@ export class QueueManagement implements OnInit, OnDestroy {
    */
   removePatient(queueEntryId: string, patientName: string): void {
     if (confirm(`Remove ${patientName} from queue? (No-show/Cancelled)`)) {
-      this.queueService.removeFromQueue(queueEntryId);
-      alert(`🚫 ${patientName} has been removed from queue.`);
+      this.queueService
+        .removeFromQueue(queueEntryId)
+        .then(() => {
+          alert(`🚫 ${patientName} has been removed from queue.`);
+        })
+        .catch(() => alert('❌ Failed to remove patient. Please try again.'));
     }
   }
-
   /**
    * Get priority badge color class
    */

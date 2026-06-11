@@ -1,217 +1,341 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { Patient, QueueEntry, PatientPriority, QueueStatus, QueueStats, MedicalConditions } from '../models/patient.model';
+import { BehaviorSubject, Observable, from } from 'rxjs';
+import { ID, Query } from 'appwrite';
+import { databases, DB_ID, COLLECTIONS } from './appwrite.config';
+import {
+  Patient,
+  QueueEntry,
+  PatientPriority,
+  QueueStatus,
+  QueueStats,
+  MedicalConditions,
+} from '../models/patient.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class Queue {
-  // Average time to attend one patient (minutes)
   private readonly AVERAGE_SERVICE_TIME = 15;
 
-  // BehaviorSubject for reactive queue updates
   private queueSubject: BehaviorSubject<QueueEntry[]>;
   public queue$: Observable<QueueEntry[]>;
 
-  private queueIdCounter = 1;
-
   constructor() {
-     // Initialize with mock data for demonstration
-    
     this.queueSubject = new BehaviorSubject<QueueEntry[]>([]);
     this.queue$ = this.queueSubject.asObservable();
-
-    const initialQueue = this.generateMockQueue();
-
-    this.queueSubject.next(initialQueue)
+    this.loadQueue();
   }
 
-    /**
-   * Get current queue state
-   */
+  // ─────────────────────────────────────────────
+  // LOAD QUEUE FROM APPWRITE
+  // ─────────────────────────────────────────────
+
+  async loadQueue(): Promise<void> {
+    try {
+      const entriesResult = await databases.listDocuments(DB_ID, COLLECTIONS.QUEUE_ENTRIES, [
+        Query.limit(100),
+      ]);
+
+      if (entriesResult.total === 0) {
+        await this.seedMockData();
+        return this.loadQueue();
+      }
+
+      // Fetch all entries but filter out old completed/cancelled
+      const activeEntries = entriesResult.documents.filter(
+        (doc) =>
+          doc['status'] === QueueStatus.WAITING ||
+          doc['status'] === QueueStatus.IN_PROGRESS ||
+          doc['status'] === QueueStatus.COMPLETED,
+      );
+
+      const entries: QueueEntry[] = await Promise.all(
+        activeEntries.map((doc) => this.documentToQueueEntry(doc)),
+      );
+
+      this.sortAndUpdateLocal(entries);
+      console.log(`✅ Queue loaded: ${entries.length} entries`);
+    } catch (error) {
+      console.error('Failed to load queue:', error);
+    }
+  }
+
   getCurrentQueue(): QueueEntry[] {
     return this.queueSubject.value;
   }
 
-   /**
-   * Add patient to queue
-   * This is where the PRIORITY QUEUE ALGORITHM runs
-   */
-  addToQueue(patient: Patient, priority: PatientPriority, nurseNotes?: string): QueueEntry {
-    const currentQueue = this.getCurrentQueue();
-    
-    // Create new queue entry
-    const queueEntry: QueueEntry = {
-      id: `Q${String(this.queueIdCounter++).padStart(3, '0')}`,
-      patient: patient,
-      priority: priority,
-      priorityScore: this.calculatePriorityScore(priority, new Date()),
-      queuePosition: 0, // Will be calculated after sorting
-      arrivalTime: new Date(),
-      estimatedWaitTime: 0, // Will be calculated after sorting
-      status: QueueStatus.WAITING,
-      notes: nurseNotes
-    };
+  // ─────────────────────────────────────────────
+  // ADD PATIENT TO QUEUE
+  // ─────────────────────────────────────────────
 
-    // Add to queue
-    currentQueue.push(queueEntry);
+  async addToQueue(
+    patient: Patient,
+    priority: PatientPriority,
+    nurseNotes?: string,
+  ): Promise<QueueEntry> {
+    try {
+      // Step 1: Save patient to patients collection
+      const patientDoc = await databases.createDocument(DB_ID, COLLECTIONS.PATIENTS, ID.unique(), {
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        age: patient.age,
+        gender: patient.gender,
+        phoneNumber: patient.phoneNumber,
+        email: patient.email || null,
+        medicalCondition: patient.medicalCondition,
+        symptoms: patient.symptoms,
+        registrationDate: new Date().toISOString(),
+        bloodPressure: patient.vitalSigns?.bloodPressure || null,
+        heartRate: patient.vitalSigns?.heartRate || null,
+        temperature: patient.vitalSigns?.temperature || null,
+        oxygenSaturation: patient.vitalSigns?.oxygenSaturation || null,
+      });
 
-    // Re-sort and recalculate positions
-    this.sortAndUpdateQueue(currentQueue);
+      const arrivalTime = new Date();
+      const priorityScore = this.calculatePriorityScore(priority, arrivalTime);
 
-    console.log(`✅ Patient ${patient.firstName} ${patient.lastName} added to queue (Priority: ${priority})`);
-    
-    return queueEntry;
+      // Step 2: Save queue entry to queue_entries collection
+      const queueDoc = await databases.createDocument(
+        DB_ID,
+        COLLECTIONS.QUEUE_ENTRIES,
+        ID.unique(),
+        {
+          patientId: patientDoc.$id,
+          priority: priority,
+          priorityScore: priorityScore,
+          queuePosition: 0,
+          arrivalTime: arrivalTime.toISOString(),
+          estimatedWaitTime: 0,
+          status: QueueStatus.WAITING,
+          assignedDoctor: null,
+          notes: nurseNotes || null,
+        },
+      );
+
+      // Step 3: Build local QueueEntry object
+      const queueEntry: QueueEntry = {
+        id: queueDoc.$id,
+        patient: { ...patient, id: patientDoc.$id },
+        priority,
+        priorityScore,
+        queuePosition: 0,
+        arrivalTime,
+        estimatedWaitTime: 0,
+        status: QueueStatus.WAITING,
+        notes: nurseNotes,
+      };
+
+      // Step 4: Add to local state and resort
+      const currentQueue = this.getCurrentQueue();
+      currentQueue.push(queueEntry);
+      this.sortAndUpdateLocal(currentQueue);
+
+      console.log(`✅ Patient ${patient.firstName} added to queue`);
+      return queueEntry;
+    } catch (error) {
+      console.error('Failed to add patient to queue:', error);
+      throw error;
+    }
   }
 
-  /**
-   * CORE ALGORITHM: Calculate priority score
-   * Formula: (Priority Weight × 1000) + (Wait Time in minutes)
-   */
+  // ─────────────────────────────────────────────
+  // CALL NEXT PATIENT
+  // ─────────────────────────────────────────────
+
+  async callNextPatient(doctorName: string): Promise<QueueEntry | null> {
+    const waitingPatients = this.getCurrentQueue().filter((e) => e.status === QueueStatus.WAITING);
+
+    if (waitingPatients.length === 0) return null;
+
+    const nextPatient = waitingPatients[0];
+
+    try {
+      await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, nextPatient.id, {
+        status: QueueStatus.IN_PROGRESS,
+        assignedDoctor: doctorName,
+      });
+
+      nextPatient.status = QueueStatus.IN_PROGRESS;
+      nextPatient.assignedDoctor = doctorName;
+
+      const currentQueue = this.getCurrentQueue();
+      this.sortAndUpdateLocal(currentQueue);
+
+      return nextPatient;
+    } catch (error) {
+      console.error('Failed to call next patient:', error);
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // COMPLETE PATIENT
+  // ─────────────────────────────────────────────
+
+  async completePatient(queueEntryId: string): Promise<void> {
+    try {
+      await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, queueEntryId, {
+        status: QueueStatus.COMPLETED,
+      });
+
+      const currentQueue = this.getCurrentQueue();
+      const entry = currentQueue.find((e) => e.id === queueEntryId);
+      if (entry) {
+        entry.status = QueueStatus.COMPLETED;
+        this.sortAndUpdateLocal(currentQueue);
+      }
+    } catch (error) {
+      console.error('Failed to complete patient:', error);
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // REMOVE FROM QUEUE
+  // ─────────────────────────────────────────────
+
+  async removeFromQueue(queueEntryId: string): Promise<void> {
+    try {
+      await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, queueEntryId, {
+        status: QueueStatus.CANCELLED,
+      });
+
+      const currentQueue = this.getCurrentQueue();
+      const entry = currentQueue.find((e) => e.id === queueEntryId);
+      if (entry) {
+        entry.status = QueueStatus.CANCELLED;
+        this.sortAndUpdateLocal(currentQueue);
+      }
+    } catch (error) {
+      console.error('Failed to remove patient:', error);
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // QUEUE STATS
+  // ─────────────────────────────────────────────
+
+  getQueueStats(): QueueStats {
+    const currentQueue = this.getCurrentQueue();
+    const waitingPatients = currentQueue.filter((e) => e.status === QueueStatus.WAITING);
+    const completedToday = currentQueue.filter((e) => e.status === QueueStatus.COMPLETED);
+
+    const waitTimes = waitingPatients.map((e) => {
+      const now = new Date();
+      const arrival = new Date(e.arrivalTime);
+      return Math.floor((now.getTime() - arrival.getTime()) / 60000);
+    });
+
+    return {
+      totalPatients: currentQueue.filter(
+        (e) => e.status === QueueStatus.WAITING || e.status === QueueStatus.IN_PROGRESS,
+      ).length,
+      criticalCount: waitingPatients.filter((e) => e.priority === PatientPriority.CRITICAL).length,
+      regularCount: waitingPatients.filter((e) => e.priority === PatientPriority.REGULAR).length,
+      delayedCount: waitingPatients.filter((e) => e.priority === PatientPriority.DELAYED).length,
+      averageWaitTime:
+        waitTimes.length > 0
+          ? Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length)
+          : 0,
+      longestWaitTime: waitTimes.length > 0 ? Math.max(...waitTimes) : 0,
+      patientsServedToday: completedToday.length,
+      totalInQueue: waitingPatients.length,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // PRIORITY ALGORITHM (unchanged)
+  // ─────────────────────────────────────────────
+
   private calculatePriorityScore(priority: PatientPriority, arrivalTime: Date): number {
-    // Priority weights
     const priorityWeights = {
       [PatientPriority.CRITICAL]: 3,
       [PatientPriority.REGULAR]: 2,
-      [PatientPriority.DELAYED]: 1
+      [PatientPriority.DELAYED]: 1,
     };
-
-    // Calculate wait time in minutes
     const now = new Date();
     const waitTimeMinutes = Math.floor((now.getTime() - arrivalTime.getTime()) / 60000);
-
-    // Calculate score
-    const priorityWeight = priorityWeights[priority];
-    const score = (priorityWeight * 1000) + waitTimeMinutes;
-
-    return score;
+    return priorityWeights[priority] * 1000 + waitTimeMinutes;
   }
 
-  /**
-   * CORE ALGORITHM: Sort queue by priority score
-   * This determines the order patients are seen
-   */
-  private sortAndUpdateQueue(queue: QueueEntry[]): void {
-    // Filter only waiting patients
-    const waitingPatients = queue.filter(entry => entry.status === QueueStatus.WAITING);
-    const otherPatients = queue.filter(entry => entry.status !== QueueStatus.WAITING);
+private sortAndUpdateLocal(queue: QueueEntry[]): void {
+  const waiting = queue.filter((e) => e.status === QueueStatus.WAITING);
+  const inProgress = queue.filter((e) => e.status === QueueStatus.IN_PROGRESS);
+  const completed = queue.filter((e) => e.status === QueueStatus.COMPLETED);
+  const cancelled = queue.filter((e) => e.status === QueueStatus.CANCELLED);
 
-    // Recalculate scores (accounts for increasing wait time)
-    waitingPatients.forEach(entry => {
-      entry.priorityScore = this.calculatePriorityScore(entry.priority, entry.arrivalTime);
-    });
+  // Recalculate scores and positions for waiting patients only
+  waiting.forEach((e) => {
+    e.priorityScore = this.calculatePriorityScore(
+      e.priority,
+      new Date(e.arrivalTime)
+    );
+  });
 
-    // Sort by priority score (highest first)
-    waitingPatients.sort((a, b) => b.priorityScore - a.priorityScore);
+  waiting.sort((a, b) => b.priorityScore - a.priorityScore);
 
-    // Update queue positions and estimated wait times
-    waitingPatients.forEach((entry, index) => {
-      entry.queuePosition = index + 1;
-      entry.estimatedWaitTime = (index + 1) * this.AVERAGE_SERVICE_TIME;
-    });
+  waiting.forEach((entry, index) => {
+    entry.queuePosition = index + 1;
+    entry.estimatedWaitTime = (index + 1) * this.AVERAGE_SERVICE_TIME;
+  });
 
-    // Combine sorted waiting patients with others
-    const updatedQueue = [...waitingPatients, ...otherPatients];
+  // Emit all entries so UI can show full picture
+  this.queueSubject.next([...waiting, ...inProgress, ...completed, ...cancelled]);
+}
 
-    // Emit updated queue
-    this.queueSubject.next(updatedQueue);
-  }
+  // ─────────────────────────────────────────────
+  // CONVERT APPWRITE DOCUMENT TO QUEUE ENTRY
+  // ─────────────────────────────────────────────
 
-  /**
-   * Call next patient (mark as in progress)
-   */
-  callNextPatient(doctorName: string): QueueEntry | null {
-    const currentQueue = this.getCurrentQueue();
-    const waitingPatients = currentQueue.filter(e => e.status === QueueStatus.WAITING);
+  private async documentToQueueEntry(doc: any): Promise<QueueEntry> {
+    // Fetch patient document
+    const patientDoc = await databases.getDocument(DB_ID, COLLECTIONS.PATIENTS, doc['patientId']);
 
-    if (waitingPatients.length === 0) {
-      console.log('⚠️ No patients in queue');
-      return null;
-    }
-
-    // Get highest priority patient (already sorted)
-    const nextPatient = waitingPatients[0];
-    nextPatient.status = QueueStatus.IN_PROGRESS;
-    nextPatient.assignedDoctor = doctorName;
-
-    // Update queue
-    this.sortAndUpdateQueue(currentQueue);
-
-    console.log(`🔔 Calling patient: ${nextPatient.patient.firstName} ${nextPatient.patient.lastName}`);
-    
-    return nextPatient;
-  }
-
-  /**
-   * Complete patient visit
-   */
-  completePatient(queueEntryId: string): void {
-    const currentQueue = this.getCurrentQueue();
-    const entry = currentQueue.find(e => e.id === queueEntryId);
-
-    if (entry) {
-      entry.status = QueueStatus.COMPLETED;
-      this.sortAndUpdateQueue(currentQueue);
-      console.log(`✅ Patient ${entry.patient.firstName} completed`);
-    }
-  }
-
-  /**
-   * Remove patient from queue (cancelled/no-show)
-   */
-  removeFromQueue(queueEntryId: string): void {
-    const currentQueue = this.getCurrentQueue();
-    const entry = currentQueue.find(e => e.id === queueEntryId);
-
-    if (entry) {
-      entry.status = QueueStatus.CANCELLED;
-      this.sortAndUpdateQueue(currentQueue);
-      console.log(`🚫 Patient ${entry.patient.firstName} removed from queue`);
-    }
-  }
-
-  /**
-   * Get queue statistics
-   */
-  getQueueStats(): QueueStats {
-    const currentQueue = this.getCurrentQueue();
-    const waitingPatients = currentQueue.filter(e => e.status === QueueStatus.WAITING);
-    const completedToday = currentQueue.filter(e => e.status === QueueStatus.COMPLETED);
-
-    const criticalCount = waitingPatients.filter(e => e.priority === PatientPriority.CRITICAL).length;
-    const regularCount = waitingPatients.filter(e => e.priority === PatientPriority.REGULAR).length;
-    const delayedCount = waitingPatients.filter(e => e.priority === PatientPriority.DELAYED).length;
-
-    const waitTimes = waitingPatients.map(e => {
-      const now = new Date();
-      return Math.floor((now.getTime() - e.arrivalTime.getTime()) / 60000);
-    });
-
-    const averageWaitTime = waitTimes.length > 0 
-      ? waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length 
-      : 0;
-
-    const longestWaitTime = waitTimes.length > 0 ? Math.max(...waitTimes) : 0;
+    const patient: Patient = {
+      id: patientDoc.$id,
+      firstName: patientDoc['firstName'],
+      lastName: patientDoc['lastName'],
+      age: patientDoc['age'],
+      gender: patientDoc['gender'],
+      phoneNumber: patientDoc['phoneNumber'],
+      email: patientDoc['email'] || undefined,
+      medicalCondition: patientDoc['medicalCondition'],
+      symptoms: patientDoc['symptoms'],
+      registrationDate: new Date(patientDoc['registrationDate']),
+      vitalSigns: patientDoc['bloodPressure']
+        ? {
+            bloodPressure: patientDoc['bloodPressure'],
+            heartRate: patientDoc['heartRate'],
+            temperature: patientDoc['temperature'],
+            oxygenSaturation: patientDoc['oxygenSaturation'],
+          }
+        : undefined,
+    };
 
     return {
-      totalPatients: waitingPatients.length,
-      criticalCount,
-      totalInQueue: waitingPatients.length,
-      regularCount,
-      delayedCount,
-      averageWaitTime: Math.round(averageWaitTime),
-      longestWaitTime,
-      patientsServedToday: completedToday.length
+      id: doc.$id,
+      patient,
+      priority: doc['priority'] as PatientPriority,
+      priorityScore: doc['priorityScore'],
+      queuePosition: doc['queuePosition'],
+      arrivalTime: new Date(doc['arrivalTime']),
+      estimatedWaitTime: doc['estimatedWaitTime'],
+      status: doc['status'] as QueueStatus,
+      assignedDoctor: doc['assignedDoctor'] || undefined,
+      notes: doc['notes'] || undefined,
     };
   }
 
-  /**
-   * Generate mock data for demonstration
-   */
-  private generateMockQueue(): QueueEntry[] {
-    const mockPatients: Patient[] = [
+  // ─────────────────────────────────────────────
+  // SEED MOCK DATA (only runs if collection empty)
+  // ─────────────────────────────────────────────
+
+  private async seedMockData(): Promise<void> {
+    console.log('🌱 Seeding mock queue data...');
+
+    const mockPatients = [
       {
-        id: 'P001',
         firstName: 'Adewale',
         lastName: 'Okafor',
         age: 45,
@@ -219,16 +343,16 @@ export class Queue {
         phoneNumber: '08012345678',
         medicalCondition: MedicalConditions.CARDIAC_ARREST,
         symptoms: 'Severe chest pain, shortness of breath',
-        registrationDate: new Date(Date.now() - 30 * 60000), // 30 min ago
+        priority: PatientPriority.CRITICAL,
+        arrivalOffset: 30,
         vitalSigns: {
           bloodPressure: '160/100',
           heartRate: 110,
           temperature: 37.2,
-          oxygenSaturation: 88
-        }
+          oxygenSaturation: 88,
+        },
       },
       {
-        id: 'P002',
         firstName: 'Chioma',
         lastName: 'Nwosu',
         age: 28,
@@ -236,10 +360,11 @@ export class Queue {
         phoneNumber: '08087654321',
         medicalCondition: MedicalConditions.ROUTINE_CHECKUP,
         symptoms: 'Annual health checkup',
-        registrationDate: new Date(Date.now() - 45 * 60000) // 45 min ago
+        priority: PatientPriority.DELAYED,
+        arrivalOffset: 45,
+        vitalSigns: null,
       },
       {
-        id: 'P003',
         firstName: 'Ibrahim',
         lastName: 'Mohammed',
         age: 62,
@@ -247,16 +372,16 @@ export class Queue {
         phoneNumber: '08098765432',
         medicalCondition: MedicalConditions.FEVER,
         symptoms: 'High fever for 2 days, body aches',
-        registrationDate: new Date(Date.now() - 20 * 60000), // 20 min ago
+        priority: PatientPriority.REGULAR,
+        arrivalOffset: 20,
         vitalSigns: {
           bloodPressure: '130/85',
           heartRate: 95,
           temperature: 39.5,
-          oxygenSaturation: 96
-        }
+          oxygenSaturation: 96,
+        },
       },
       {
-        id: 'P004',
         firstName: 'Blessing',
         lastName: 'Eze',
         age: 35,
@@ -264,71 +389,49 @@ export class Queue {
         phoneNumber: '08076543210',
         medicalCondition: MedicalConditions.SEVERE_TRAUMA,
         symptoms: 'Car accident - multiple injuries',
-        registrationDate: new Date(Date.now() - 10 * 60000), // 10 min ago
+        priority: PatientPriority.CRITICAL,
+        arrivalOffset: 10,
         vitalSigns: {
           bloodPressure: '90/60',
           heartRate: 120,
           temperature: 36.8,
-          oxygenSaturation: 90
-        }
-      }
+          oxygenSaturation: 90,
+        },
+      },
     ];
 
-    const queueEntries: QueueEntry[] = [];
+    for (const mock of mockPatients) {
+      const arrivalTime = new Date(Date.now() - mock.arrivalOffset * 60000);
 
-    // Add Critical patients
-    queueEntries.push({
-      id: 'Q001',
-      patient: mockPatients[0],
-      priority: PatientPriority.CRITICAL,
-      priorityScore: 0,
-      queuePosition: 0,
-      arrivalTime: mockPatients[0].registrationDate,
-      estimatedWaitTime: 0,
-      status: QueueStatus.WAITING
-    });
+      const patientDoc = await databases.createDocument(DB_ID, COLLECTIONS.PATIENTS, ID.unique(), {
+        firstName: mock.firstName,
+        lastName: mock.lastName,
+        age: mock.age,
+        gender: mock.gender,
+        phoneNumber: mock.phoneNumber,
+        email: null,
+        medicalCondition: mock.medicalCondition,
+        symptoms: mock.symptoms,
+        registrationDate: arrivalTime.toISOString(),
+        bloodPressure: mock.vitalSigns?.bloodPressure || null,
+        heartRate: mock.vitalSigns?.heartRate || null,
+        temperature: mock.vitalSigns?.temperature || null,
+        oxygenSaturation: mock.vitalSigns?.oxygenSaturation || null,
+      });
 
-    queueEntries.push({
-      id: 'Q004',
-      patient: mockPatients[3],
-      priority: PatientPriority.CRITICAL,
-      priorityScore: 0,
-      queuePosition: 0,
-      arrivalTime: mockPatients[3].registrationDate,
-      estimatedWaitTime: 0,
-      status: QueueStatus.WAITING
-    });
+      await databases.createDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, ID.unique(), {
+        patientId: patientDoc.$id,
+        priority: mock.priority,
+        priorityScore: this.calculatePriorityScore(mock.priority, arrivalTime),
+        queuePosition: 0,
+        arrivalTime: arrivalTime.toISOString(),
+        estimatedWaitTime: 0,
+        status: QueueStatus.WAITING,
+        assignedDoctor: null,
+        notes: null,
+      });
+    }
 
-    // Add Regular patient
-    queueEntries.push({
-      id: 'Q003',
-      patient: mockPatients[2],
-      priority: PatientPriority.REGULAR,
-      priorityScore: 0,
-      queuePosition: 0,
-      arrivalTime: mockPatients[2].registrationDate,
-      estimatedWaitTime: 0,
-      status: QueueStatus.WAITING
-    });
-
-    // Add Delayed patient
-    queueEntries.push({
-      id: 'Q002',
-      patient: mockPatients[1],
-      priority: PatientPriority.DELAYED,
-      priorityScore: 0,
-      queuePosition: 0,
-      arrivalTime: mockPatients[1].registrationDate,
-      estimatedWaitTime: 0,
-      status: QueueStatus.WAITING
-    });
-
-    this.queueIdCounter = 5; // Next ID will be Q005
-
-    // Sort and calculate positions
-    this.sortAndUpdateQueue(queueEntries);
-
-    return queueEntries;
+    console.log('✅ Mock data seeded successfully');
   }
-
 }

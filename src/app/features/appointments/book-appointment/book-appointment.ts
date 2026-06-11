@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AppointmentService } from '../../../core/services/appointment-service';
-import { AppointmentType, AppointmentSlot } from '../../../core/models/patient.model';
+import { AppointmentType, AppointmentSlot, AppointmentStatus } from '../../../core/models/patient.model';
 
 @Component({
   selector: 'app-book-appointment',
@@ -88,39 +88,44 @@ export class BookAppointment implements OnInit {
     }
   }
 
-  onSubmit(): void {
-    this.submitted = true;
+onSubmit(): void {
+  this.submitted = true;
 
-    if (this.appointmentForm.invalid) {
-      return;
-    }
+  if (this.appointmentForm.invalid) {
+    return;
+  }
 
   console.log('Form is valid');
 
-    const formValue = this.appointmentForm.value;
-    const appointmentData = {
-      patientId: 'P-' + Date.now(),
-      patientName: formValue.patientName,
-      patientEmail: formValue.patientEmail,
-      patientPhone: formValue.patientPhone,
-      doctorName: formValue.doctorName,
-      appointmentType: formValue.appointmentType,
-      appointmentDate: new Date(formValue.appointmentDate),
-      appointmentTime: formValue.appointmentTime,
-      duration: 30,
-      status: 'SCHEDULED' as any,
-      reason: formValue.reason,
-      notes: formValue.notes
-    };
+  const formValue = this.appointmentForm.value;
+  const appointmentData = {
+    patientId: 'P-' + Date.now(),
+    patientName: formValue.patientName,
+    patientEmail: formValue.patientEmail,
+    patientPhone: formValue.patientPhone,
+    doctorName: formValue.doctorName,
+    appointmentType: formValue.appointmentType,
+    appointmentDate: new Date(formValue.appointmentDate),
+    appointmentTime: formValue.appointmentTime,
+    duration: 30,
+    status: AppointmentStatus.SCHEDULED,
+    reason: formValue.reason,
+    notes: formValue.notes,
+  };
 
-    const bookedAppointment = this.appointmentService.bookAppointment(appointmentData);
-    this.bookedAppointmentId = bookedAppointment.id;
-    this.showSuccess = true;
-
-    setTimeout(() => {
-      this.router.navigate(['/appointments']);
-    }, 3000);
-  }
+  this.appointmentService.bookAppointment(appointmentData)
+    .then((booked) => {
+      this.bookedAppointmentId = booked.id;
+      this.showSuccess = true;
+      setTimeout(() => {
+        this.router.navigate(['/appointments']);
+      }, 3000);
+    })
+    .catch((error) => {
+      console.error('Failed to book appointment:', error);
+      alert('❌ Failed to book appointment. Please try again.');
+    });
+}
 
   get f() {
     return this.appointmentForm.controls;

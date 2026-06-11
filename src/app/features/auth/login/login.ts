@@ -3,7 +3,6 @@ import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { LoginRequest, UserRole } from '../../../core/models/user.model';
-import { passwordStrengthValidator } from '../../../core/validators/password-strength.validator';
 import { Auth } from '../../../core/services/auth';
 
 @Component({
@@ -32,7 +31,7 @@ export class Login {
 
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6), passwordStrengthValidator()]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
       role: ['', Validators.required],
     });
   }

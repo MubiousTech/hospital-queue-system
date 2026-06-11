@@ -34,18 +34,22 @@ export class Dashboard implements OnInit, OnDestroy {
       this.currentUser = user;
     });
 
-    this.loadQueueStats();
+    // Subscribe to queue so stats update reactively
+    this.queueService.queue$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.queueStats = this.queueService.getQueueStats();
+    });
+
+    // Load fresh data from Appwrite on init
+    this.queueService.loadQueue();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
-
   loadQueueStats(): void {
     this.queueStats = this.queueService.getQueueStats();
   }
-
   navigateToQueue(): void {
     this.router.navigate(['/queue']);
   }

@@ -1,15 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Queue } from '../../../core/services/queue';
+import { databases, DB_ID, COLLECTIONS } from '../../../core/services/appwrite.config';
+import { Query } from 'appwrite';
 import {
   QueueEntry,
   QueueStats,
   PatientPriority,
   QueueStatus,
 } from '../../../core/models/patient.model';
-import { queue } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 
 interface SystemUser {
   id: string;
@@ -26,51 +28,19 @@ interface SystemUser {
   templateUrl: './admin-panel.html',
   styleUrl: './admin-panel.css',
 })
-export class AdminPanel implements OnInit {
+export class AdminPanel implements OnInit, OnDestroy {
   queueStats: QueueStats | null = null;
   allQueueEntries: QueueEntry[] = [];
 
-  //System usres (mock data)
-  systemUsers: SystemUser[] = [
-    {
-      id: '1',
-      name: 'Admin User',
-      email: 'admin@hospital.com',
-      role: 'ADMIN',
-      status: 'Active',
-      lastLogin: new Date('2024-05-12T08:30:00'),
-    },
-    {
-      id: '2',
-      name: 'Dr. Sarah Johnson',
-      email: 'doctor@hospital.com',
-      role: 'DOCTOR',
-      status: 'Active',
-      lastLogin: new Date('2024-05-12T09:15:00'),
-    },
-    {
-      id: '3',
-      name: 'Nurse Mary Williams',
-      email: 'nurse@hospital.com',
-      role: 'NURSE',
-      status: 'Active',
-      lastLogin: new Date('2024-05-12T07:45:00'),
-    },
-    {
-      id: '4',
-      name: 'John Patient',
-      email: 'patient@hospital.com',
-      role: 'PATIENT',
-      status: 'Active',
-      lastLogin: new Date('2024-05-11T16:20:00'),
-    },
-  ];
-
+  systemUsers: SystemUser[] = [];
   filteredUsers: SystemUser[] = [];
   searchTerm: string = '';
   selectedRole: string = 'all';
+  isLoadingUsers = false;
 
   activeTab: 'overview' | 'users' | 'queue' | 'settings' = 'overview';
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private queueService: Queue,
@@ -78,15 +48,55 @@ export class AdminPanel implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadData();
-    this.filteredUsers = [...this.systemUsers];
+    // Subscribe to queue reactively
+    this.queueService.queue$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((queue) => {
+        this.allQueueEntries = queue;
+        this.queueStats = this.queueService.getQueueStats();
+      });
+
+    // Load fresh queue data
+    this.queueService.loadQueue();
+
+    // Load users from Appwrite
+    this.loadUsers();
   }
 
-  loadData(): void {
-    this.queueStats = this.queueService.getQueueStats();
-    this.queueService.queue$.subscribe((queue) => {
-      this.allQueueEntries = queue;
-    });
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ─────────────────────────────────────────────
+  // LOAD USERS FROM APPWRITE
+  // ─────────────────────────────────────────────
+
+  async loadUsers(): Promise<void> {
+    this.isLoadingUsers = true;
+    try {
+      const result = await databases.listDocuments(
+        DB_ID,
+        COLLECTIONS.USERS,
+        [Query.limit(100)]
+      );
+
+      this.systemUsers = result.documents.map((doc) => ({
+        id: doc.$id,
+        name: `${doc['firstName']} ${doc['lastName']}`,
+        email: doc['email'],
+        role: doc['role'].toUpperCase(),
+        status: 'Active' as 'Active' | 'Inactive',
+        lastLogin: new Date(doc['$updatedAt']),
+      }));
+
+      this.filteredUsers = [...this.systemUsers];
+      console.log(`✅ Users loaded: ${this.systemUsers.length}`);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    } finally {
+      this.isLoadingUsers = false;
+    }
   }
 
   switchTab(tab: 'overview' | 'users' | 'queue' | 'settings'): void {
@@ -98,7 +108,8 @@ export class AdminPanel implements OnInit {
       const matchesSearch =
         user.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(this.searchTerm.toLowerCase());
-      const matchesRole = this.selectedRole === 'all' || user.role === this.selectedRole;
+      const matchesRole =
+        this.selectedRole === 'all' || user.role === this.selectedRole;
       return matchesSearch && matchesRole;
     });
   }
@@ -112,12 +123,18 @@ export class AdminPanel implements OnInit {
     }
   }
 
-  deleteUser(userId: string): void {
+  async deleteUser(userId: string): Promise<void> {
     const user = this.systemUsers.find((u) => u.id === userId);
     if (user && confirm(`Are you sure you want to delete user: ${user.name}?`)) {
-      this.systemUsers = this.systemUsers.filter((u) => u.id !== userId);
-      this.filterUsers();
-      alert(`User ${user.name} has ben deleted`);
+      try {
+        await databases.deleteDocument(DB_ID, COLLECTIONS.USERS, userId);
+        this.systemUsers = this.systemUsers.filter((u) => u.id !== userId);
+        this.filterUsers();
+        alert(`User ${user.name} has been deleted`);
+      } catch (error) {
+        console.error('Failed to delete user:', error);
+        alert('❌ Failed to delete user. Please try again.');
+      }
     }
   }
 
@@ -131,27 +148,19 @@ export class AdminPanel implements OnInit {
 
   getPriorityClass(priority: PatientPriority): string {
     switch (priority) {
-      case PatientPriority.CRITICAL:
-        return 'priority-critical';
-      case PatientPriority.REGULAR:
-        return 'priority-regular';
-      case PatientPriority.DELAYED:
-        return 'priority-delayed';
+      case PatientPriority.CRITICAL: return 'priority-critical';
+      case PatientPriority.REGULAR: return 'priority-regular';
+      case PatientPriority.DELAYED: return 'priority-delayed';
     }
   }
 
   getStatusClass(status: QueueStatus): string {
     switch (status) {
-      case QueueStatus.WAITING:
-        return 'status-waiting';
-      case QueueStatus.IN_PROGRESS:
-        return 'status-in_progress';
-      case QueueStatus.COMPLETED:
-        return 'Status-completed';
-      case QueueStatus.CANCELLED:
-        return 'status-cancelled';
-      default:
-        return '';
+      case QueueStatus.WAITING: return 'status-waiting';
+      case QueueStatus.IN_PROGRESS: return 'status-in_progress';
+      case QueueStatus.COMPLETED: return 'status-completed';
+      case QueueStatus.CANCELLED: return 'status-cancelled';
+      default: return '';
     }
   }
 
@@ -162,17 +171,16 @@ export class AdminPanel implements OnInit {
   navigateToDashboard(): void {
     this.router.navigate(['/dashboard']);
   }
-  
-  // ✅ Add these new methods
+
   getDoctorCount(): number {
-    return this.systemUsers.filter(user => user.role === 'DOCTOR').length;
+    return this.systemUsers.filter((u) => u.role === 'DOCTOR').length;
   }
 
   getNurseCount(): number {
-    return this.systemUsers.filter(user => user.role === 'NURSE').length;
+    return this.systemUsers.filter((u) => u.role === 'NURSE').length;
   }
 
   getPatientCount(): number {
-    return this.systemUsers.filter(user => user.role === 'PATIENT').length;
+    return this.systemUsers.filter((u) => u.role === 'PATIENT').length;
   }
 }

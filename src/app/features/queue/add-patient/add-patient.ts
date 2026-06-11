@@ -7,14 +7,11 @@ import { Patient, PatientPriority, MedicalConditions } from '../../../core/model
 
 @Component({
   selector: 'app-add-patient',
-  imports: [
-    CommonModule,
-    ReactiveFormsModule
-  ],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './add-patient.html',
   styleUrl: './add-patient.css',
 })
-export class AddPatient implements OnInit{
+export class AddPatient implements OnInit {
   patientForm: FormGroup;
   submitted = false;
   showVitalSigns = false;
@@ -29,7 +26,7 @@ export class AddPatient implements OnInit{
   constructor(
     private formBuilder: FormBuilder,
     private queueService: Queue,
-    private router: Router
+    private router: Router,
   ) {
     this.patientForm = this.formBuilder.group({
       //patient info
@@ -52,88 +49,94 @@ export class AddPatient implements OnInit{
       oxygenSaturation: ['', [Validators.min(0), Validators.max(100)]],
 
       //Nurse note
-      nurseNotes: ['']
+      nurseNotes: [''],
     });
   }
 
   ngOnInit(): void {
+    this.patientForm.get('medicalCondition')?.valueChanges.subscribe((condition) => {
+      let priority: PatientPriority;
 
-      this.patientForm.get('medicalCondition')?.valueChanges.subscribe(condition => {
+      switch (condition) {
+        // Critical conditions
+        case MedicalConditions.CARDIAC_ARREST:
+        case MedicalConditions.SEVERE_TRAUMA:
+        case MedicalConditions.STROKE:
+        case MedicalConditions.RESPIRATORY_FAILURE:
+          priority = PatientPriority.CRITICAL;
+          break;
 
-  let priority: PatientPriority;
+        // Regular conditions
+        case MedicalConditions.FRACTURE:
+        case MedicalConditions.FEVER:
+        case MedicalConditions.ABDOMINAL_PAIN:
+        case MedicalConditions.MINOR_INJURY:
+          priority = PatientPriority.REGULAR;
+          break;
 
-  switch (condition) {
+        // Delayed conditions
+        case MedicalConditions.COLD_FLU:
+        case MedicalConditions.ROUTINE_CHECKUP:
+        case MedicalConditions.VACCINATION:
+        case MedicalConditions.PRESCRIPTION_REFILL:
+          priority = PatientPriority.DELAYED;
+          break;
 
-    // Critical conditions
-    case MedicalConditions.CARDIAC_ARREST:
-    case MedicalConditions.SEVERE_TRAUMA:
-    case MedicalConditions.STROKE:
-    case MedicalConditions.RESPIRATORY_FAILURE:
-      priority = PatientPriority.CRITICAL;
-      break;
+        default:
+          priority = PatientPriority.REGULAR;
+      }
 
-    // Regular conditions
-    case MedicalConditions.FRACTURE:
-    case MedicalConditions.FEVER:
-    case MedicalConditions.ABDOMINAL_PAIN:
-    case MedicalConditions.MINOR_INJURY:
-      priority = PatientPriority.REGULAR;
-      break;
+      // Automatically update priority field
+      this.patientForm.patchValue({
+        priority: priority,
+      });
+    });
 
-    // Delayed conditions
-    case MedicalConditions.COLD_FLU:
-    case MedicalConditions.ROUTINE_CHECKUP:
-    case MedicalConditions.VACCINATION:
-    case MedicalConditions.PRESCRIPTION_REFILL:
-      priority = PatientPriority.DELAYED;
-      break;
+    //Watch priority changes to show/hide vital signs
 
-    default:
-      priority = PatientPriority.REGULAR;
-  }
+    this.patientForm.get('priority')?.valueChanges.subscribe((priority) => {
+      if (priority === PatientPriority.CRITICAL) {
+        this.showVitalSigns = true;
+        //Make vital signs required for critical patients
 
-  // Automatically update priority field
-  this.patientForm.patchValue({
-    priority: priority
-  });
+        this.patientForm.get('bloodPressure')?.setValidators(Validators.required);
 
-});
+        this.patientForm
+          .get('heartRate')
+          ?.setValidators([Validators.required, Validators.min(30), Validators.max(220)]);
 
-      //Watch priority changes to show/hide vital signs
+        this.patientForm
+          .get('temperature')
+          ?.setValidators([Validators.required, Validators.min(30), Validators.max(45)]);
 
-      this.patientForm.get('priority')?.valueChanges.subscribe(priority => {
-        if (priority === PatientPriority.CRITICAL) {
-          this.showVitalSigns = true;
-          //Make vital signs required for critical patients
-          
-          this.patientForm.get('bloodPressure')?.setValidators(Validators.required);
+        this.patientForm
+          .get('oxygenSaturation')
+          ?.setValidators([Validators.required, Validators.min(0), Validators.max(100)]);
+      } else {
+        this.showVitalSigns = false;
+        //Remove required validation from non-critical
+        this.patientForm.get('bloodPressure')?.clearValidators();
 
-          this.patientForm.get('heartRate')?.setValidators([Validators.required, Validators.min(30), Validators.max(220)]);
+        this.patientForm.get('heartRate')?.setValidators([Validators.min(30), Validators.max(220)]);
 
-          this.patientForm.get('temperature')?.setValidators([Validators.required, Validators.min(30), Validators.max(45)]);
+        this.patientForm
+          .get('temperature')
+          ?.setValidators([Validators.min(30), Validators.max(45)]);
 
-          this.patientForm.get('oxygenSaturation')?.setValidators([Validators.required, Validators.min(0), Validators.max(100)])
-        } else {
-          this.showVitalSigns = false;
-          //Remove required validation from non-critical
-          this.patientForm.get('bloodPressure')?.clearValidators();
+        this.patientForm
+          .get('oxygenSaturation')
+          ?.setValidators([Validators.min(0), Validators.max(100)]);
+      }
 
-          this.patientForm.get('heartRate')?.setValidators([Validators.min(30), Validators.max(220)]);
-
-          this.patientForm.get('temperature')?.setValidators([Validators.min(30), Validators.max(45)]);
-
-          this.patientForm.get('oxygenSaturation')?.setValidators([Validators.min(0), Validators.max(100)]);
-        }
-
-         // Update validators
+      // Update validators
       this.patientForm.get('bloodPressure')?.updateValueAndValidity();
       this.patientForm.get('heartRate')?.updateValueAndValidity();
       this.patientForm.get('temperature')?.updateValueAndValidity();
       this.patientForm.get('oxygenSaturation')?.updateValueAndValidity();
-      });
-    }
+    });
+  }
 
-      // Getter for easy access to form controls
+  // Getter for easy access to form controls
   get f() {
     return this.patientForm.controls;
   }
@@ -161,41 +164,42 @@ export class AddPatient implements OnInit{
       const min = field.errors?.['min'].min;
       return `Value must be at least ${min}`;
     }
-    
+
     if (field?.hasError('max')) {
       const max = field.errors?.['max'].max;
       return `Value must not exceed ${max}`;
     }
 
-     if (field?.hasError('pattern')) {
+    if (field?.hasError('pattern')) {
       return 'Please enter a valid Nigerian phone number (e.g., 08012345678)';
     }
-    
+
     if (field?.hasError('email')) {
       return 'Please enter a valid email address';
     }
-    
+
     return '';
   }
 
   //Capitalize first letter
   private capitalize(text: string): string {
-      return text.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase());
+    return text
+      .replace(/([A-Z])/g, ' $1')
+      .trim()
+      .replace(/^./, (str) => str.toUpperCase());
   }
 
   //Handle form submission
   onSubmit(): void {
     this.submitted = true;
 
-        // Stop if form is invalid
     if (this.patientForm.invalid) {
       alert('⚠️ Please fill in all required fields correctly.');
       return;
     }
 
-        // Create patient object
     const patient: Patient = {
-      id: `P${String(this.patientIdCounter++).padStart(3, '0')}`,
+      id: '', // Appwrite generates the real ID
       firstName: this.patientForm.value.firstName,
       lastName: this.patientForm.value.lastName,
       age: this.patientForm.value.age,
@@ -204,27 +208,26 @@ export class AddPatient implements OnInit{
       email: this.patientForm.value.email || undefined,
       medicalCondition: this.patientForm.value.medicalCondition,
       symptoms: this.patientForm.value.symptoms,
-      registrationDate: new Date()
+      registrationDate: new Date(),
     };
 
-        // Add vital signs if provided
     if (this.showVitalSigns && this.patientForm.value.bloodPressure) {
       patient.vitalSigns = {
         bloodPressure: this.patientForm.value.bloodPressure,
         heartRate: this.patientForm.value.heartRate,
         temperature: this.patientForm.value.temperature,
-        oxygenSaturation: this.patientForm.value.oxygenSaturation
+        oxygenSaturation: this.patientForm.value.oxygenSaturation,
       };
     }
 
-      // Add to queue
     const priority: PatientPriority = this.patientForm.value.priority;
     const nurseNotes = this.patientForm.value.nurseNotes || undefined;
 
-     const queueEntry = this.queueService.addToQueue(patient, priority, nurseNotes);
-
-    // Show success message
-    alert(`✅ Patient registered successfully!
+    // addToQueue is now async
+    this.queueService
+      .addToQueue(patient, priority, nurseNotes)
+      .then((queueEntry) => {
+        alert(`✅ Patient registered successfully!
 
 Name: ${patient.firstName} ${patient.lastName}
 Priority: ${priority}
@@ -233,8 +236,12 @@ Estimated Wait: ${queueEntry.estimatedWaitTime} minutes
 
 Patient has been added to the queue.`);
 
-    // Navigate to queue management page
-    this.router.navigate(['/queue']);
+        this.router.navigate(['/queue']);
+      })
+      .catch((error) => {
+        console.error('Failed to add patient:', error);
+        alert('❌ Failed to register patient. Please try again.');
+      });
   }
 
   // Reset form
