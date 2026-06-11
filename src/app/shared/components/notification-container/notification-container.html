@@ -1,0 +1,27 @@
+<div class="notification-container">
+  <div
+    *ngFor="let notification of notifications; trackBy: trackByFn"
+    class="notification-toast"
+    [ngClass]="'notification-' + notification.type"
+  >
+    <div class="notification-icon">{{ getIcon(notification.type) }}</div>
+
+    <div class="notification-content">
+      <div class="notification-header">
+        <h4 class="notification-title">
+          {{ notification.title || (notification.type | titlecase) }}
+        </h4>
+        <span class="notification-time">{{ getTimeAgo(notification.timestamp) }}</span>
+      </div>
+      <p class="notification-message">{{ notification.message }}</p>
+    </div>
+
+    <button
+      class="notification-close"
+      (click)="closeNotification(notification.id)"
+      aria-label="Close"
+    >
+      ✕
+    </button>
+  </div>
+</div>

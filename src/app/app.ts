@@ -11,7 +11,6 @@ import { Sidebar } from './layout/sidebar/sidebar';
     RouterOutlet,
     Header,
     Sidebar,
-    Dashboard,
     Footer,
     
   ],

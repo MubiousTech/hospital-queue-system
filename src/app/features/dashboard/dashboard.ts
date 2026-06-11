@@ -10,7 +10,8 @@ import { Subject, takeUntil } from 'rxjs';
 @Component({
   selector: 'app-dashboard',
   imports: [
-    CommonModule,//Needed for pipes like data
+    CommonModule, //Needed for pipes like data
+    RouterLink,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -22,14 +23,14 @@ export class Dashboard implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor (
+  constructor(
     private authService: Auth,
     private queueService: Queue,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
-    this.authService.currentUser.pipe(takeUntil(this.destroy$)).subscribe(user => {
+    this.authService.currentUser.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUser = user;
     });
 
@@ -49,21 +50,20 @@ export class Dashboard implements OnInit, OnDestroy {
     this.router.navigate(['/queue']);
   }
 
-   navigateToAddPatient(): void {
+  navigateToAddPatient(): void {
     this.router.navigate(['/queue/add-patient']);
   }
 
-    navigateToAdmin(): void {
+  navigateToAdmin(): void {
     this.router.navigate(['/admin']);
   }
 
   navigateToBookAppointment(): void {
-  this.router.navigate(['/appointments/book']);
-}
+    this.router.navigate(['/appointments/book']);
+  }
 
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
-
 }

@@ -6,33 +6,29 @@
 
   <!-- Tab Navigation -->
   <div class="tab-navigation">
-    <button 
-      class="tab-btn" 
+    <button
+      class="tab-btn"
       [class.active]="activeTab === 'overview'"
-      (click)="switchTab('overview')">
+      (click)="switchTab('overview')"
+    >
       📊 Overview
     </button>
-    <button 
-      class="tab-btn" 
-      [class.active]="activeTab === 'users'"
-      (click)="switchTab('users')">
+    <button class="tab-btn" [class.active]="activeTab === 'users'" (click)="switchTab('users')">
       👥 Users
     </button>
-    <button 
-      class="tab-btn" 
-      [class.active]="activeTab === 'queue'"
-      (click)="switchTab('queue')">
+    <button class="tab-btn" [class.active]="activeTab === 'queue'" (click)="switchTab('queue')">
       📋 Queue History
     </button>
-    <button 
-      class="tab-btn" 
+    <button
+      class="tab-btn"
       [class.active]="activeTab === 'settings'"
-      (click)="switchTab('settings')">
+      (click)="switchTab('settings')"
+    >
       ⚙️ Settings
     </button>
   </div>
 
-   <!-- Overview Tab -->
+  <!-- Overview Tab -->
   <div *ngIf="activeTab === 'overview'" class="tab-content">
     <h2>System Overview</h2>
 
@@ -45,21 +41,21 @@
         </div>
       </div>
 
-<div class="stat-card">
-  <div class="stat-icon">🩺</div>
-  <div class="stat-info">
-    <h3>Active Doctors</h3>
-    <p class="stat-number">{{ getDoctorCount() }}</p>
-  </div>
-</div>
+      <div class="stat-card">
+        <div class="stat-icon">🩺</div>
+        <div class="stat-info">
+          <h3>Active Doctors</h3>
+          <p class="stat-number">{{ getDoctorCount() }}</p>
+        </div>
+      </div>
 
- <div class="stat-card">
-  <div class="stat-icon">💉</div>
-  <div class="stat-info">
-    <h3>Active Nurses</h3>
-    <p class="stat-number">{{ getNurseCount() }}</p>
-  </div>
-</div>
+      <div class="stat-card">
+        <div class="stat-icon">💉</div>
+        <div class="stat-info">
+          <h3>Active Nurses</h3>
+          <p class="stat-number">{{ getNurseCount() }}</p>
+        </div>
+      </div>
 
       <div class="stat-card">
         <div class="stat-icon">📊</div>
@@ -81,18 +77,14 @@
         <div class="stat-icon">✅</div>
         <div class="stat-info">
           <h3>Completed Today</h3>
-          <p class="stat-number">{{ queueStats?.patientsServedToday|| 0 }}</p>
+          <p class="stat-number">{{ queueStats?.patientsServedToday || 0 }}</p>
         </div>
       </div>
     </div>
 
     <div class="quick-actions">
-      <button class="btn btn-primary" (click)="navigateToQueue()">
-        View Queue
-      </button>
-      <button class="btn btn-secondary" (click)="exportData()">
-        Export Reports
-      </button>
+      <button class="btn btn-primary" (click)="navigateToQueue()">View Queue</button>
+      <button class="btn btn-secondary" (click)="exportData()">Export Reports</button>
     </div>
   </div>
 
@@ -100,24 +92,19 @@
   <div *ngIf="activeTab === 'users'" class="tab-content">
     <div class="users-header">
       <h2>User Management</h2>
-      <button class="btn btn-primary" (click)="addNewUser()">
-        ➕ Add New User
-      </button>
+      <button class="btn btn-primary" (click)="addNewUser()">➕ Add New User</button>
     </div>
 
     <div class="filters">
-      <input 
-        type="text" 
-        class="search-input" 
+      <input
+        type="text"
+        class="search-input"
         placeholder="🔍 Search by name or email..."
         [(ngModel)]="searchTerm"
         (input)="filterUsers()"
       />
 
-      <select 
-        class="role-filter" 
-        [(ngModel)]="selectedRole"
-        (change)="filterUsers()">
+      <select class="role-filter" [(ngModel)]="selectedRole" (change)="filterUsers()">
         <option value="all">All Roles</option>
         <option value="ADMIN">Admin</option>
         <option value="DOCTOR">Doctor</option>
@@ -152,18 +139,20 @@
                 {{ user.status }}
               </span>
             </td>
-            <td>{{ user.lastLogin | date:'short' }}</td>
+            <td>{{ user.lastLogin | date: 'short' }}</td>
             <td class="actions">
-              <button 
-                class="btn-action btn-toggle" 
+              <button
+                class="btn-action btn-toggle"
                 (click)="toggleUserStatus(user.id)"
-                [title]="user.status === 'Active' ? 'Deactivate' : 'Activate'">
+                [title]="user.status === 'Active' ? 'Deactivate' : 'Activate'"
+              >
                 {{ user.status === 'Active' ? '🔒' : '🔓' }}
               </button>
-              <button 
-                class="btn-action btn-delete" 
+              <button
+                class="btn-action btn-delete"
                 (click)="deleteUser(user.id)"
-                title="Delete User">
+                title="Delete User"
+              >
                 🗑️
               </button>
             </td>
@@ -196,7 +185,9 @@
         </thead>
         <tbody>
           <tr *ngFor="let entry of allQueueEntries">
-            <td><strong>#{{ entry.queuePosition }}</strong></td>
+            <td>
+              <strong>#{{ entry.queuePosition }}</strong>
+            </td>
             <td>{{ entry.patient.firstName }}</td>
             <td>
               <span class="priority-badge" [ngClass]="getPriorityClass(entry.priority)">
@@ -208,16 +199,14 @@
                 {{ entry.status }}
               </span>
             </td>
-            <td>{{ entry.arrivalTime | date:'short' }}</td>
+            <td>{{ entry.arrivalTime | date: 'short' }}</td>
             <td>{{ entry.estimatedWaitTime }} min</td>
             <td>{{ entry.assignedDoctor || 'Not assigned' }}</td>
           </tr>
         </tbody>
       </table>
 
-      <p *ngIf="allQueueEntries.length === 0" class="no-results">
-        No queue entries available.
-      </p>
+      <p *ngIf="allQueueEntries.length === 0" class="no-results">No queue entries available.</p>
     </div>
   </div>
 
@@ -283,8 +272,6 @@
       </div>
     </div>
 
-    <button class="btn btn-primary save-btn">
-      💾 Save Settings
-    </button>
+    <button class="btn btn-primary save-btn">💾 Save Settings</button>
   </div>
 </div>

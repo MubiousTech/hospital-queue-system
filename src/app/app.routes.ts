@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { Login } from './features/auth/login/login';
+import { Register } from './features/auth/register/register';
 import { Dashboard } from './features/dashboard/dashboard';
 import { AppointmentList } from './features/appointments/appointment-list/appointment-list';
 import { QueueManagement } from './features/queue/queue-management/queue-management';
@@ -10,10 +11,12 @@ import { roleGuard } from './core/guards/role-guard';
 import { UserRole } from './core/models/user.model';
 import { AccessDenied } from './features/access-denied/access-denied';
 import { BookAppointment } from './features/appointments/book-appointment/book-appointment';
+import { AnalyticsDashboard } from './features/analytics/analytics-dashboard/analytics-dashboard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: Login },
+  { path: 'register', component: Register },
 
   {
     path: 'dashboard',
@@ -43,6 +46,14 @@ export const routes: Routes = [
     data: { roles: [UserRole.ADMIN] },
   },
 
+  // Admin-only staff registration
+  {
+    path: 'admin/register-staff',
+    component: Register,
+    canActivate: [authGuard, roleGuard],
+    data: { roles: [UserRole.ADMIN] }
+  },
+
   {
     path: 'appointments',
     component: AppointmentList, // We'll create this next
@@ -54,9 +65,17 @@ export const routes: Routes = [
     component: BookAppointment,
     canActivate: [authGuard],
   },
+
+  {
+    path: 'analytics',
+    component: AnalyticsDashboard,
+    canActivate: [authGuard]
+  },
   
   { path: 'access-denied', component: AccessDenied },
 
   { path: '**', redirectTo: '/login' },
+
+ 
 
 ];

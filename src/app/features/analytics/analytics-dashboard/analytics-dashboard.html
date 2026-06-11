@@ -1,0 +1,130 @@
+<div class="analytics-container">
+  <div class="analytics-header">
+    <div class="header-left">
+      <h1>📊 Analytics Dashboard</h1>
+      <p>Visual insights and statistics</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-refresh" (click)="refreshCharts()">
+        🔄 Refresh Data
+      </button>
+      <button class="btn btn-secondary" routerLink="/dashboard">
+        ← Back to Dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- Charts Grid -->
+  <div class="charts-grid">
+    
+    <!-- Chart 1: Priority Distribution (Pie) -->
+    <div class="chart-card">
+      <div class="chart-wrapper">
+        <canvas 
+          baseChart
+          [type]="'pie'"
+          [data]="pieChartData"
+          [options]="pieChartOptions">
+        </canvas>
+      </div>
+      <div class="chart-footer">
+        <p>Shows the distribution of patients across different priority levels in the current queue.</p>
+      </div>
+    </div>
+
+    <!-- Chart 2: Daily Patients (Line) -->
+    <div class="chart-card">
+      <div class="chart-wrapper">
+        <canvas 
+          baseChart
+          [type]="'line'"
+          [data]="lineChartData"
+          [options]="lineChartOptions">
+        </canvas>
+      </div>
+      <div class="chart-footer">
+        <p>Track the number of patients treated each day over the past week.</p>
+      </div>
+    </div>
+
+    <!-- Chart 3: Appointment Status (Doughnut) -->
+    <div class="chart-card">
+      <div class="chart-wrapper">
+        <canvas 
+          baseChart
+          [type]="'doughnut'"
+          [data]="doughnutChartData"
+          [options]="doughnutChartOptions">
+        </canvas>
+      </div>
+      <div class="chart-footer">
+        <p>Overview of all appointments grouped by their current status.</p>
+      </div>
+    </div>
+
+    <!-- Chart 4: Average Wait Times (Bar) -->
+    <div class="chart-card">
+      <div class="chart-wrapper">
+        <canvas 
+          baseChart
+          [type]="'bar'"
+          [data]="barChartData"
+          [options]="barChartOptions">
+        </canvas>
+      </div>
+      <div class="chart-footer">
+        <p>Average patient wait times during different time slots throughout the day.</p>
+      </div>
+    </div>
+
+    <!-- Chart 5: Weekly Trends (Multi-line) -->
+    <div class="chart-card full-width">
+      <div class="chart-wrapper">
+        <canvas 
+          baseChart
+          [type]="'line'"
+          [data]="multiLineChartData"
+          [options]="multiLineChartOptions">
+        </canvas>
+      </div>
+      <div class="chart-footer">
+        <p>Monthly trends showing patient volume by priority level over the past 4 weeks.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Summary Statistics -->
+  <div class="summary-section">
+    <h2>📈 Key Insights</h2>
+    <div class="insights-grid">
+      <div class="insight-card">
+        <div class="insight-icon">🏆</div>
+        <h3>Busiest Day</h3>
+        <p class="insight-value">Thursday</p>
+        <p class="insight-desc">22 patients treated</p>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">⚡</div>
+        <h3>Peak Hours</h3>
+        <p class="insight-value">1-3 PM</p>
+        <p class="insight-desc">45 min avg wait</p>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">✅</div>
+        <h3>Completion Rate</h3>
+        <p class="insight-value">94%</p>
+        <p class="insight-desc">Excellent performance</p>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">🎯</div>
+        <h3>Critical Response</h3>
+        <p class="insight-value">12 min</p>
+        <p class="insight-desc">Avg response time</p>
+      </div>
+    </div>
+  </div>
+</div>
