@@ -10,6 +10,7 @@ import {
   QueueStatus,
   QueueStats,
 } from '../../../core/models/patient.model';
+import { Notifications } from '../../../core/services/notifications';
 
 @Component({
   selector: 'app-queue-management',
@@ -32,6 +33,7 @@ export class QueueManagement implements OnInit, OnDestroy {
   constructor(
     private queueService: Queue,
     private authService: Auth,
+    private notifications: Notifications,
   ) {}
 
   ngOnInit(): void {
@@ -83,19 +85,19 @@ export class QueueManagement implements OnInit, OnDestroy {
    */
   callNextPatient(): void {
     const doctorName = this.currentUser?.firstName || 'Dr. Unknown';
-
     this.queueService
       .callNextPatient(doctorName)
       .then((nextPatient) => {
         if (nextPatient) {
-          alert(
-            `🔔 Now calling: ${nextPatient.patient.firstName} ${nextPatient.patient.lastName}\nPlease proceed to consultation room.`,
+          this.notifications.success(
+            'Patient Called',
+            `Now calling: ${nextPatient.patient.firstName} ${nextPatient.patient.lastName}`,
           );
         } else {
-          alert('⚠️ No patients in queue');
+          this.notifications.warning('Queue Empty', 'No patients currently waiting.');
         }
       })
-      .catch(() => alert('❌ Failed to call next patient. Please try again.'));
+      .catch(() => this.notifications.error('Error', 'Failed to call next patient.'));
   }
 
   /**
@@ -106,23 +108,22 @@ export class QueueManagement implements OnInit, OnDestroy {
       this.queueService
         .completePatient(queueEntryId)
         .then(() => {
-          alert(`✅ ${patientName} has been marked as completed.`);
+          this.notifications.success('Completed', `${patientName} has been marked as completed.`);
         })
-        .catch(() => alert('❌ Failed to complete patient. Please try again.'));
+        .catch(() => this.notifications.error('Error', 'Failed to complete patient.'));
     }
   }
-
   /**
    * Remove patient from queue
    */
   removePatient(queueEntryId: string, patientName: string): void {
-    if (confirm(`Remove ${patientName} from queue? (No-show/Cancelled)`)) {
+    if (confirm(`Remove ${patientName} from queue?`)) {
       this.queueService
         .removeFromQueue(queueEntryId)
         .then(() => {
-          alert(`🚫 ${patientName} has been removed from queue.`);
+          this.notifications.warning('Removed', `${patientName} has been removed from queue.`);
         })
-        .catch(() => alert('❌ Failed to remove patient. Please try again.'));
+        .catch(() => this.notifications.error('Error', 'Failed to remove patient.'));
     }
   }
   /**
@@ -162,7 +163,9 @@ export class QueueManagement implements OnInit, OnDestroy {
    */
   getCurrentWaitTime(arrivalTime: Date): number {
     const now = new Date();
-    return Math.floor((now.getTime() - arrivalTime.getTime()) / 60000);
+    const minutes = Math.floor((now.getTime() - new Date(arrivalTime).getTime()) / 60000);
+    // Cap display at 999 minutes to avoid huge numbers
+    return Math.min(minutes, 999);
   }
 
   /**

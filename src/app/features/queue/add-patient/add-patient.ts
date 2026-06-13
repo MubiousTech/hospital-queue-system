@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { Router } from '@angular/router';
 import { Queue } from '../../../core/services/queue';
 import { Patient, PatientPriority, MedicalConditions } from '../../../core/models/patient.model';
+import { Notifications } from '../../../core/services/notifications';
 
 @Component({
   selector: 'app-add-patient',
@@ -27,6 +28,7 @@ export class AddPatient implements OnInit {
     private formBuilder: FormBuilder,
     private queueService: Queue,
     private router: Router,
+    private notifications: Notifications,
   ) {
     this.patientForm = this.formBuilder.group({
       //patient info
@@ -194,7 +196,7 @@ export class AddPatient implements OnInit {
     this.submitted = true;
 
     if (this.patientForm.invalid) {
-      alert('⚠️ Please fill in all required fields correctly.');
+      this.notifications.warning('Invalid Input', 'Please fill in all required fields correctly.');
       return;
     }
 
@@ -224,24 +226,18 @@ export class AddPatient implements OnInit {
     const nurseNotes = this.patientForm.value.nurseNotes || undefined;
 
     // addToQueue is now async
-    this.queueService
-      .addToQueue(patient, priority, nurseNotes)
-      .then((queueEntry) => {
-        alert(`✅ Patient registered successfully!
-
-Name: ${patient.firstName} ${patient.lastName}
-Priority: ${priority}
-Queue Position: #${queueEntry.queuePosition}
-Estimated Wait: ${queueEntry.estimatedWaitTime} minutes
-
-Patient has been added to the queue.`);
-
-        this.router.navigate(['/queue']);
-      })
-      .catch((error) => {
-        console.error('Failed to add patient:', error);
-        alert('❌ Failed to register patient. Please try again.');
-      });
+this.queueService
+  .addToQueue(patient, priority, nurseNotes)
+  .then((queueEntry) => {
+    this.notifications.success(
+      'Patient Registered',
+      `${patient.firstName} ${patient.lastName} added to queue at position #${queueEntry.queuePosition}`
+    );
+    this.router.navigate(['/queue']);
+  })
+  .catch(() => {
+    this.notifications.error('Registration Failed', 'Failed to register patient. Please try again.');
+  });
   }
 
   // Reset form

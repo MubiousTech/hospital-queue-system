@@ -1,4 +1,13 @@
-<div class="appointments-container">
+<!-- Loading state -->
+<div *ngIf="isLoading" style="text-align:center; padding: 3rem;">
+  <p>Loading appointments...</p>
+</div>
+
+<!-- Main content — only show when not loading -->
+<div *ngIf="!isLoading">
+  <!-- your existing HTML goes here -->
+   
+</div><div class="appointments-container">
   <div class="appointments-header">
     <div class="header-left">
       <h1>📅 My Appointments</h1>

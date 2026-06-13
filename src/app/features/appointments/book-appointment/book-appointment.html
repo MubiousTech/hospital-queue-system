@@ -1,38 +1,99 @@
 <div class="appointment-container">
-  <div class="appointment-header">
-    <h1>📅 Book Appointment</h1>
-    <p>Schedule your visit with our medical professionals</p>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>📅 Book Appointment</h1>
+      <p>Schedule your visit with our medical professionals</p>
+    </div>
+    <button class="btn btn-secondary" routerLink="/appointments">← Back</button>
   </div>
 
-  <div *ngIf="!showSuccess" class="appointment-form-wrapper">
-    <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" class="appointment-form">
-      
-      <!-- Personal Information Section -->
+  <!-- Success State -->
+  <div *ngIf="showSuccess" class="success-card">
+    <div class="success-icon">✅</div>
+    <h2>Appointment Booked Successfully!</h2>
+    <p>Your appointment has been confirmed.</p>
+    <div class="booking-summary">
+      <div class="summary-row">
+        <span>🩺 Doctor</span>
+        <strong>{{ appointmentForm.get('doctorName')?.value }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>📅 Date</span>
+        <strong>{{ appointmentForm.get('appointmentDate')?.value | date:'fullDate' }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>⏰ Time</span>
+        <strong>{{ appointmentForm.get('appointmentTime')?.value }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>🔖 Booking ID</span>
+        <strong>{{ bookedAppointmentId }}</strong>
+      </div>
+    </div>
+    <p class="redirect-note">Redirecting to appointments page...</p>
+  </div>
+
+  <!-- Booking Form -->
+  <div *ngIf="!showSuccess" class="booking-layout">
+
+    <!-- Doctor Cards -->
+    <div class="form-section">
+      <h2>👨‍⚕️ Select a Doctor</h2>
+      <div class="doctor-grid">
+        <div
+          *ngFor="let doctor of doctors"
+          class="doctor-card"
+          [class.selected]="selectedDoctor?.name === doctor.name"
+          (click)="appointmentForm.patchValue({ doctorName: doctor.name })"
+        >
+          <div class="doctor-avatar">{{ doctor.avatar }}</div>
+          <div class="doctor-info">
+            <strong>{{ doctor.name }}</strong>
+            <span class="specialization">{{ doctor.specialization }}</span>
+            <span class="schedule-info">
+              📅 {{ getWorkingDaysLabel(doctor) }}
+            </span>
+            <span class="schedule-info">
+              🕐 {{ getWorkingHoursLabel(doctor) }}
+            </span>
+          </div>
+          <div class="selected-check" *ngIf="selectedDoctor?.name === doctor.name">✓</div>
+        </div>
+      </div>
+      <div *ngIf="submitted && f['doctorName'].errors" class="error-message">
+        Please select a doctor
+      </div>
+    </div>
+
+    <form [formGroup]="appointmentForm" class="appointment-form">
+
+      <!-- Personal Information -->
       <div class="form-section">
         <h2>👤 Personal Information</h2>
-
-        <div class="form-group">
-          <label for="patientName">Full Name <span class="required">*</span></label>
-          <input 
-            type="text" 
-            id="patientName" 
-            formControlName="patientName"
-            class="form-control"
-            [class.invalid]="submitted && f['patientName'].errors"
-            placeholder="Enter your full name"
-          />
-          <div *ngIf="submitted && f['patientName'].errors" class="error-message">
-            <span *ngIf="f['patientName'].errors['required']">Name is required</span>
-            <span *ngIf="f['patientName'].errors['minlength']">Name must be at least 3 characters</span>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name <span class="required">*</span></label>
+            <input
+              type="text"
+              formControlName="patientName"
+              class="form-control"
+              [class.invalid]="submitted && f['patientName'].errors"
+              placeholder="Enter your full name"
+            />
+            <div *ngIf="submitted && f['patientName'].errors" class="error-message">
+              <span *ngIf="f['patientName'].errors['required']">Name is required</span>
+              <span *ngIf="f['patientName'].errors['minlength']">Minimum 3 characters</span>
+            </div>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="patientEmail">Email Address <span class="required">*</span></label>
-            <input 
-              type="email" 
-              id="patientEmail" 
+            <label>Email Address <span class="required">*</span></label>
+            <input
+              type="email"
               formControlName="patientEmail"
               class="form-control"
               [class.invalid]="submitted && f['patientEmail'].errors"
@@ -40,15 +101,14 @@
             />
             <div *ngIf="submitted && f['patientEmail'].errors" class="error-message">
               <span *ngIf="f['patientEmail'].errors['required']">Email is required</span>
-              <span *ngIf="f['patientEmail'].errors['email']">Invalid email format</span>
+              <span *ngIf="f['patientEmail'].errors['email']">Invalid email</span>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="patientPhone">Phone Number <span class="required">*</span></label>
-            <input 
-              type="tel" 
-              id="patientPhone" 
+            <label>Phone Number <span class="required">*</span></label>
+            <input
+              type="tel"
               formControlName="patientPhone"
               class="form-control"
               [class.invalid]="submitted && f['patientPhone'].errors"
@@ -62,95 +122,95 @@
         </div>
       </div>
 
-      <!-- Appointment Details Section -->
+      <!-- Appointment Details -->
       <div class="form-section">
         <h2>🩺 Appointment Details</h2>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="appointmentType">Appointment Type <span class="required">*</span></label>
-            <select 
-              id="appointmentType" 
-              formControlName="appointmentType"
-              class="form-control"
-              [class.invalid]="submitted && f['appointmentType'].errors"
+        <div class="form-group">
+          <label>Appointment Type <span class="required">*</span></label>
+          <div class="type-grid">
+            <div
+              *ngFor="let type of appointmentTypes"
+              class="type-card"
+              [class.selected]="f['appointmentType'].value === type.value"
+              (click)="appointmentForm.patchValue({ appointmentType: type.value })"
             >
-              <option value="">Select appointment type</option>
-              <option *ngFor="let type of appointmentTypes" [value]="type.value">
-                {{ type.label }}
-              </option>
-            </select>
-            <div *ngIf="submitted && f['appointmentType'].errors" class="error-message">
-              <span *ngIf="f['appointmentType'].errors['required']">Appointment type is required</span>
+              <span class="type-label">{{ type.label }}</span>
+              <span class="type-duration">{{ type.duration }} min</span>
             </div>
           </div>
-
-          <div class="form-group">
-            <label for="doctorName">Preferred Doctor <span class="required">*</span></label>
-            <select 
-              id="doctorName" 
-              formControlName="doctorName"
-              class="form-control"
-              [class.invalid]="submitted && f['doctorName'].errors"
-            >
-              <option value="">Select a doctor</option>
-              <option *ngFor="let doctor of availableDoctors" [value]="doctor">
-                {{ doctor }}
-              </option>
-            </select>
-            <div *ngIf="submitted && f['doctorName'].errors" class="error-message">
-              <span *ngIf="f['doctorName'].errors['required']">Doctor selection is required</span>
-            </div>
+          <div *ngIf="submitted && f['appointmentType'].errors" class="error-message">
+            Please select an appointment type
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="appointmentDate">Appointment Date <span class="required">*</span></label>
-            <input 
-              type="date" 
-              id="appointmentDate" 
+            <label>Appointment Date <span class="required">*</span></label>
+            <input
+              type="date"
               formControlName="appointmentDate"
               class="form-control"
               [class.invalid]="submitted && f['appointmentDate'].errors"
+              [min]="today"
             />
             <div *ngIf="submitted && f['appointmentDate'].errors" class="error-message">
               <span *ngIf="f['appointmentDate'].errors['required']">Date is required</span>
               <span *ngIf="f['appointmentDate'].errors['pastDate']">Please select a future date</span>
             </div>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="appointmentTime">Preferred Time <span class="required">*</span></label>
-            <select 
-              id="appointmentTime" 
-              formControlName="appointmentTime"
-              class="form-control"
-              [class.invalid]="submitted && f['appointmentTime'].errors"
-              [disabled]="availableSlots.length === 0"
+        <!-- Slot Picker -->
+        <div class="form-group" *ngIf="f['doctorName'].value && f['appointmentDate'].value && f['appointmentType'].value">
+          <label>
+            Available Time Slots
+            <span *ngIf="getDurationLabel()" class="duration-badge">{{ getDurationLabel() }} per slot</span>
+          </label>
+
+          <!-- Doctor unavailable on this day -->
+          <div *ngIf="isDoctorUnavailable" class="unavailable-notice">
+            ⚠️ {{ f['doctorName'].value }} does not work on this day.
+            <br/>
+            <small>Working days: {{ selectedDoctor ? getWorkingDaysLabel(selectedDoctor) : '' }}</small>
+          </div>
+
+          <!-- Loading -->
+          <div *ngIf="isLoadingSlots" class="slots-loading">Loading slots...</div>
+
+          <!-- Slots grid -->
+          <div *ngIf="!isDoctorUnavailable && !isLoadingSlots && availableSlots.length > 0" class="slots-grid">
+            <button
+              *ngFor="let slot of availableSlots"
+              type="button"
+              class="slot-btn"
+              [class.slot-available]="slot.available"
+              [class.slot-booked]="!slot.available"
+              [class.slot-selected]="f['appointmentTime'].value === slot.time"
+              [disabled]="!slot.available"
+              (click)="appointmentForm.patchValue({ appointmentTime: slot.time })"
             >
-              <option value="">Select a time slot</option>
-              <option 
-                *ngFor="let slot of availableSlots" 
-                [value]="slot.time"
-                [disabled]="!slot.available"
-              >
-                {{ slot.time }} {{ slot.available ? '(Available)' : '(Booked)' }}
-              </option>
-            </select>
-            <div *ngIf="submitted && f['appointmentTime'].errors" class="error-message">
-              <span *ngIf="f['appointmentTime'].errors['required']">Time slot is required</span>
-            </div>
-            <small class="helper-text" *ngIf="availableSlots.length === 0 && f['doctorName'].value && f['appointmentDate'].value">
-              No available slots for selected doctor and date
-            </small>
+              {{ slot.time }}
+              <small *ngIf="!slot.available">{{ slot.conflictReason }}</small>
+            </button>
+          </div>
+
+          <div *ngIf="!isDoctorUnavailable && !isLoadingSlots && availableSlots.length === 0" class="no-slots">
+            No slots available for this date.
+          </div>
+
+          <div *ngIf="getAvailableCount() > 0" class="slots-summary">
+            {{ getAvailableCount() }} slot(s) available
+          </div>
+
+          <div *ngIf="submitted && f['appointmentTime'].errors" class="error-message">
+            Please select a time slot
           </div>
         </div>
 
         <div class="form-group">
-          <label for="reason">Reason for Visit <span class="required">*</span></label>
-          <textarea 
-            id="reason" 
+          <label>Reason for Visit <span class="required">*</span></label>
+          <textarea
             formControlName="reason"
             class="form-control"
             [class.invalid]="submitted && f['reason'].errors"
@@ -164,9 +224,8 @@
         </div>
 
         <div class="form-group">
-          <label for="notes">Additional Notes (Optional)</label>
-          <textarea 
-            id="notes" 
+          <label>Additional Notes (Optional)</label>
+          <textarea
             formControlName="notes"
             class="form-control"
             rows="2"
@@ -175,35 +234,22 @@
         </div>
       </div>
 
+      <!-- Actions -->
       <div class="form-actions">
-        <button type="button" class="btn btn-secondary" routerLink="/dashboard">
+        <button type="button" class="btn btn-secondary" routerLink="/appointments">
           Cancel
         </button>
         <button
-    type="button"
-    class="btn btn-primary"
-    (click)="onSubmit()">
-    📅 Book Appointment
-  </button>
+          type="button"
+          class="btn btn-primary"
+          [disabled]="isSubmitting"
+          (click)="onSubmit()"
+        >
+          <span *ngIf="!isSubmitting">📅 Book Appointment</span>
+          <span *ngIf="isSubmitting">⏳ Booking...</span>
+        </button>
       </div>
-    </form>
-  </div>
 
-  <!-- Success Message -->
-  <div *ngIf="showSuccess" class="success-card">
-    <div class="success-icon">✅</div>
-    <h2>Appointment Booked Successfully!</h2>
-    <p class="success-message">
-      Your appointment has been scheduled.
-    </p>
-    <div class="appointment-details">
-      <p><strong>Appointment ID:</strong> {{ bookedAppointmentId }}</p>
-      <p><strong>Doctor:</strong> {{ appointmentForm.get('doctorName')?.value }}</p>
-      <p><strong>Date:</strong> {{ appointmentForm.get('appointmentDate')?.value | date:'fullDate' }}</p>
-      <p><strong>Time:</strong> {{ appointmentForm.get('appointmentTime')?.value }}</p>
-    </div>
-    <p class="redirect-message">
-      You will receive a confirmation email shortly. Redirecting to appointments page...
-    </p>
+    </form>
   </div>
 </div>

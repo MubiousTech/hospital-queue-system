@@ -1,9 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { Analytics, ChartData } from '../../../core/services/analytics';
+import { Queue } from '../../../core/services/queue';
+import { AppointmentService } from '../../../core/services/appointment-service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-analytics-dashboard',
@@ -11,7 +14,9 @@ import { Analytics, ChartData } from '../../../core/services/analytics';
   templateUrl: './analytics-dashboard.html',
   styleUrl: './analytics-dashboard.css',
 })
-export class AnalyticsDashboard implements OnInit {
+export class AnalyticsDashboard implements OnInit, OnDestroy {
+  isLoading = true;
+
   // Pie Chart - Priority Distribution
   public pieChartType: ChartType = 'pie';
   public pieChartData: ChartConfiguration<'pie'>['data'] = {
@@ -21,13 +26,8 @@ export class AnalyticsDashboard implements OnInit {
   public pieChartOptions: ChartConfiguration<'pie'>['options'] = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'bottom',
-      },
-      title: {
-        display: true,
-        text: 'Queue Priority Distribution',
-      },
+      legend: { position: 'bottom' },
+      title: { display: true, text: 'Queue Priority Distribution' },
     },
   };
 
@@ -40,19 +40,10 @@ export class AnalyticsDashboard implements OnInit {
   public lineChartOptions: ChartConfiguration<'line'>['options'] = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Daily Patients (Last 7 Days)',
-      },
+      legend: { position: 'top' },
+      title: { display: true, text: 'Daily Patients (Last 7 Days)' },
     },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
+    scales: { y: { beginAtZero: true } },
   };
 
   // Doughnut Chart - Appointment Status
@@ -64,13 +55,8 @@ export class AnalyticsDashboard implements OnInit {
   public doughnutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'bottom',
-      },
-      title: {
-        display: true,
-        text: 'Appointment Status',
-      },
+      legend: { position: 'bottom' },
+      title: { display: true, text: 'Appointment Status' },
     },
   };
 
@@ -83,21 +69,13 @@ export class AnalyticsDashboard implements OnInit {
   public barChartOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: true,
-        text: 'Average Wait Times by Time Slot',
-      },
+      legend: { display: false },
+      title: { display: true, text: 'Average Wait Times by Time Slot' },
     },
     scales: {
       y: {
         beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Minutes',
-        },
+        title: { display: true, text: 'Minutes' },
       },
     },
   };
@@ -111,75 +89,71 @@ export class AnalyticsDashboard implements OnInit {
   public multiLineChartOptions: ChartConfiguration<'line'>['options'] = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Weekly Trends by Priority',
-      },
+      legend: { position: 'top' },
+      title: { display: true, text: 'Weekly Trends by Priority' },
     },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
+    scales: { y: { beginAtZero: true } },
   };
 
-  constructor(private analyticsService: Analytics) {}
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private analyticsService: Analytics,
+    private queueService: Queue,
+    private appointmentService: AppointmentService
+  ) {}
 
   ngOnInit(): void {
-    // Ensure Chart.js components are registered once
     if (!(Chart as any)._registered) {
       Chart.register(...registerables);
       (Chart as any)._registered = true;
     }
 
-    this.loadCharts();
+    // Load fresh data first
+    Promise.all([
+      this.queueService.loadQueue(),
+      this.appointmentService.loadAppointments(),
+    ]).then(() => {
+      this.loadCharts();
+      this.isLoading = false;
+    });
+
+    // Reactively update charts when queue changes
+    this.queueService.queue$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadCharts();
+      });
+
+    // Reactively update charts when appointments change
+    this.appointmentService.appointments$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadCharts();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadCharts(): void {
-    // Load Priority Distribution (Pie)
-    const priorityData = this.analyticsService.getPriorityDistribution();
-    this.pieChartData = {
-      labels: priorityData.labels,
-      datasets: priorityData.datasets,
-    };
-
-    console.log('Analytics: pieChartData', this.pieChartData);
-
-    // Load Daily Patients (Line)
-    const dailyData = this.analyticsService.getDailyPatientsChart();
-    this.lineChartData = {
-      labels: dailyData.labels,
-      datasets: dailyData.datasets,
-    };
-
-    // Load Appointment Status (Doughnut)
-    const appointmentData = this.analyticsService.getAppointmentStatusChart();
-    this.doughnutChartData = {
-      labels: appointmentData.labels,
-      datasets: appointmentData.datasets,
-    };
-
-    // Load Wait Times (Bar)
-    const waitTimeData = this.analyticsService.getAverageWaitTimesChart();
-    this.barChartData = {
-      labels: waitTimeData.labels,
-      datasets: waitTimeData.datasets,
-    };
-
-    // Load Weekly Trends (Multi-line)
-    const weeklyData = this.analyticsService.getWeeklyTrends();
-    this.multiLineChartData = {
-      labels: weeklyData.labels,
-      datasets: weeklyData.datasets,
-    };
-
-    console.log('Analytics: multiLineChartData', this.multiLineChartData);
+    this.pieChartData = { ...this.analyticsService.getPriorityDistribution() };
+    this.lineChartData = { ...this.analyticsService.getDailyPatientsChart() };
+    this.doughnutChartData = { ...this.analyticsService.getAppointmentStatusChart() };
+    this.barChartData = { ...this.analyticsService.getAverageWaitTimesChart() };
+    this.multiLineChartData = { ...this.analyticsService.getWeeklyTrends() };
   }
 
   refreshCharts(): void {
-    this.loadCharts();
+    this.isLoading = true;
+    Promise.all([
+      this.queueService.loadQueue(),
+      this.appointmentService.loadAppointments(),
+    ]).then(() => {
+      this.loadCharts();
+      this.isLoading = false;
+    });
   }
 }

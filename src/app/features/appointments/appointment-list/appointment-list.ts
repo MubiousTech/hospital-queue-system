@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment-service';
 import { Appointment, AppointmentStatus } from '../../../core/models/patient.model';
+import { Notifications } from '../../../core/services/notifications';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -15,6 +16,7 @@ import { Subject, takeUntil } from 'rxjs';
 export class AppointmentList implements OnInit, OnDestroy {
   appointments: Appointment[] = [];
   filteredAppointments: Appointment[] = [];
+  isLoading = true;
 
   AppointmentStatus = AppointmentStatus;
 
@@ -24,10 +26,23 @@ export class AppointmentList implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private appointmentService: AppointmentService) {}
+  constructor(
+    private appointmentService: AppointmentService,
+    private notifications: Notifications
+  ) {}
 
   ngOnInit(): void {
-    this.loadAppointments();
+    // Subscribe first so any emission updates the UI
+    this.appointmentService.appointments$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((appointments) => {
+        this.appointments = appointments;
+        this.applyFilters();
+        this.isLoading = false;
+      });
+
+    // Force fresh fetch from Appwrite
+    this.appointmentService.loadAppointments();
   }
 
   ngOnDestroy(): void {
@@ -35,32 +50,17 @@ export class AppointmentList implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  loadAppointments(): void {
-    // First subscribe to state changes
-    this.appointmentService.appointments$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((appointments) => {
-        this.appointments = appointments;
-        this.applyFilters();
-      });
-
-    // Then force a fresh fetch from Appwrite
-    this.appointmentService.loadAppointments();
-  }
-
   applyFilters(): void {
     this.filteredAppointments = this.appointments.filter((apt) => {
-      // Status filter
-      const matchesStatus = this.filterStatus === 'all' || apt.status === this.filterStatus;
+      const matchesStatus =
+        this.filterStatus === 'all' || apt.status === this.filterStatus;
 
-      // Date filter
       let matchesDate = true;
       if (this.filterDate) {
         const aptDate = new Date(apt.appointmentDate).toISOString().split('T')[0];
         matchesDate = aptDate === this.filterDate;
       }
 
-      // Search filter
       const matchesSearch =
         apt.patientName.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         apt.doctorName.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
@@ -69,9 +69,11 @@ export class AppointmentList implements OnInit, OnDestroy {
       return matchesStatus && matchesDate && matchesSearch;
     });
 
-    // Sort by date (upcoming first)
     this.filteredAppointments.sort((a, b) => {
-      return new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime();
+      return (
+        new Date(a.appointmentDate).getTime() -
+        new Date(b.appointmentDate).getTime()
+      );
     });
   }
 
@@ -80,10 +82,11 @@ export class AppointmentList implements OnInit, OnDestroy {
       this.appointmentService
         .updateAppointmentStatus(appointmentId, AppointmentStatus.CONFIRMED)
         .then(() => {
-          alert('Appointment confirmed successfully!');
-          return this.appointmentService.loadAppointments();
+          this.notifications.success('Confirmed', 'Appointment confirmed successfully!');
         })
-        .catch(() => alert('❌ Failed to confirm appointment. Please try again.'));
+        .catch(() =>
+          this.notifications.error('Error', 'Failed to confirm appointment.')
+        );
     }
   }
 
@@ -92,41 +95,39 @@ export class AppointmentList implements OnInit, OnDestroy {
       this.appointmentService
         .cancelAppointment(appointmentId)
         .then(() => {
-          alert('Appointment cancelled successfully!');
-          return this.appointmentService.loadAppointments();
+          this.notifications.warning('Cancelled', 'Appointment has been cancelled.');
         })
-        .catch(() => alert('❌ Failed to cancel appointment. Please try again.'));
+        .catch(() =>
+          this.notifications.error('Error', 'Failed to cancel appointment.')
+        );
     }
   }
 
   deleteAppointment(appointmentId: string): void {
     if (
-      confirm('Are you sure you want to delete this appointment? This action cannot be undone.')
+      confirm(
+        'Are you sure you want to delete this appointment? This action cannot be undone.'
+      )
     ) {
       this.appointmentService
         .deleteAppointment(appointmentId)
         .then(() => {
-          alert('Appointment deleted successfully!');
-          return this.appointmentService.loadAppointments();
+          this.notifications.warning('Deleted', 'Appointment has been deleted.');
         })
-        .catch(() => alert('❌ Failed to delete appointment. Please try again.'));
+        .catch(() =>
+          this.notifications.error('Error', 'Failed to delete appointment.')
+        );
     }
   }
 
   getStatusClass(status: AppointmentStatus): string {
     switch (status) {
-      case AppointmentStatus.SCHEDULED:
-        return 'status-scheduled';
-      case AppointmentStatus.CONFIRMED:
-        return 'status-confirmed';
-      case AppointmentStatus.CANCELLED:
-        return 'status-cancelled';
-      case AppointmentStatus.COMPLETED:
-        return 'status-completed';
-      case AppointmentStatus.NO_SHOW:
-        return 'status-no-show';
-      default:
-        return '';
+      case AppointmentStatus.SCHEDULED: return 'status-scheduled';
+      case AppointmentStatus.CONFIRMED: return 'status-confirmed';
+      case AppointmentStatus.CANCELLED: return 'status-cancelled';
+      case AppointmentStatus.COMPLETED: return 'status-completed';
+      case AppointmentStatus.NO_SHOW:   return 'status-no-show';
+      default: return '';
     }
   }
 
@@ -145,7 +146,6 @@ export class AppointmentList implements OnInit, OnDestroy {
     const aptDateTime = new Date(appointment.appointmentDate);
     aptDateTime.setHours(parseInt(appointment.appointmentTime.split(':')[0]));
     aptDateTime.setMinutes(parseInt(appointment.appointmentTime.split(':')[1]));
-
     return aptDateTime > new Date();
   }
 
@@ -155,7 +155,7 @@ export class AppointmentList implements OnInit, OnDestroy {
 
   getUpcomingCount(): number {
     return this.appointments.filter(
-      (apt) => this.isUpcoming(apt) && apt.status !== AppointmentStatus.CANCELLED,
+      (apt) => this.isUpcoming(apt) && apt.status !== AppointmentStatus.CANCELLED
     ).length;
   }
 

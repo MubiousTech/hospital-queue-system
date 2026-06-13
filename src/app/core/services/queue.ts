@@ -30,38 +30,87 @@ export class Queue {
   // LOAD QUEUE FROM APPWRITE
   // ─────────────────────────────────────────────
 
-  async loadQueue(): Promise<void> {
-    try {
-      const entriesResult = await databases.listDocuments(DB_ID, COLLECTIONS.QUEUE_ENTRIES, [
-        Query.limit(100),
-      ]);
+async loadQueue(): Promise<void> {
+  try {
+    const entriesResult = await databases.listDocuments(
+      DB_ID,
+      COLLECTIONS.QUEUE_ENTRIES,
+      [Query.limit(100)]
+    );
 
-      if (entriesResult.total === 0) {
-        await this.seedMockData();
-        return this.loadQueue();
-      }
+    // Count only active entries (not cancelled) for seed check
+    const activeEntries = entriesResult.documents.filter(
+      (doc) =>
+        doc['status'] === QueueStatus.WAITING ||
+        doc['status'] === QueueStatus.IN_PROGRESS ||
+        doc['status'] === QueueStatus.COMPLETED
+    );
 
-      // Fetch all entries but filter out old completed/cancelled
-      const activeEntries = entriesResult.documents.filter(
-        (doc) =>
-          doc['status'] === QueueStatus.WAITING ||
-          doc['status'] === QueueStatus.IN_PROGRESS ||
-          doc['status'] === QueueStatus.COMPLETED,
-      );
-
-      const entries: QueueEntry[] = await Promise.all(
-        activeEntries.map((doc) => this.documentToQueueEntry(doc)),
-      );
-
-      this.sortAndUpdateLocal(entries);
-      console.log(`✅ Queue loaded: ${entries.length} entries`);
-    } catch (error) {
-      console.error('Failed to load queue:', error);
+    // Seed only if no active entries exist
+    if (activeEntries.length === 0) {
+      await this.seedMockData();
+      return this.loadQueue();
     }
+
+    const entries: QueueEntry[] = await Promise.all(
+      activeEntries.map((doc) => this.documentToQueueEntry(doc))
+    );
+
+    this.sortAndUpdateLocal(entries);
+
+    // Clean up stale patients after loading
+    await this.cleanupStalePatients();
+
+    console.log(`✅ Queue loaded: ${entries.length} entries`);
+  } catch (error) {
+    console.error('Failed to load queue:', error);
   }
+}
 
   getCurrentQueue(): QueueEntry[] {
     return this.queueSubject.value;
+  }
+
+  private async cleanupStalePatients(): Promise<void> {
+    const currentQueue = this.getCurrentQueue();
+    const now = new Date();
+
+    // Only clean up patients from previous days, not today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    for (const entry of currentQueue) {
+      const arrivalTime = new Date(entry.arrivalTime);
+      const isFromPreviousDay = arrivalTime < startOfToday;
+
+      // Auto-cancel WAITING patients from previous days
+      if (entry.status === QueueStatus.WAITING && isFromPreviousDay) {
+        try {
+          await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, entry.id, {
+            status: QueueStatus.CANCELLED,
+          });
+          entry.status = QueueStatus.CANCELLED;
+          console.log(`🚫 Auto-cancelled previous day patient: ${entry.patient.firstName}`);
+        } catch (error) {
+          console.error('Failed to cancel stale patient:', error);
+        }
+      }
+
+      // Auto-complete IN_PROGRESS patients from previous days
+      if (entry.status === QueueStatus.IN_PROGRESS && isFromPreviousDay) {
+        try {
+          await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, entry.id, {
+            status: QueueStatus.COMPLETED,
+          });
+          entry.status = QueueStatus.COMPLETED;
+          console.log(`✅ Auto-completed previous day patient: ${entry.patient.firstName}`);
+        } catch (error) {
+          console.error('Failed to auto-complete stale patient:', error);
+        }
+      }
+    }
+
+    this.sortAndUpdateLocal(currentQueue);
   }
 
   // ─────────────────────────────────────────────
@@ -259,30 +308,27 @@ export class Queue {
     return priorityWeights[priority] * 1000 + waitTimeMinutes;
   }
 
-private sortAndUpdateLocal(queue: QueueEntry[]): void {
-  const waiting = queue.filter((e) => e.status === QueueStatus.WAITING);
-  const inProgress = queue.filter((e) => e.status === QueueStatus.IN_PROGRESS);
-  const completed = queue.filter((e) => e.status === QueueStatus.COMPLETED);
-  const cancelled = queue.filter((e) => e.status === QueueStatus.CANCELLED);
+  private sortAndUpdateLocal(queue: QueueEntry[]): void {
+    const waiting = queue.filter((e) => e.status === QueueStatus.WAITING);
+    const inProgress = queue.filter((e) => e.status === QueueStatus.IN_PROGRESS);
+    const completed = queue.filter((e) => e.status === QueueStatus.COMPLETED);
+    const cancelled = queue.filter((e) => e.status === QueueStatus.CANCELLED);
 
-  // Recalculate scores and positions for waiting patients only
-  waiting.forEach((e) => {
-    e.priorityScore = this.calculatePriorityScore(
-      e.priority,
-      new Date(e.arrivalTime)
-    );
-  });
+    // Recalculate scores and positions for waiting patients only
+    waiting.forEach((e) => {
+      e.priorityScore = this.calculatePriorityScore(e.priority, new Date(e.arrivalTime));
+    });
 
-  waiting.sort((a, b) => b.priorityScore - a.priorityScore);
+    waiting.sort((a, b) => b.priorityScore - a.priorityScore);
 
-  waiting.forEach((entry, index) => {
-    entry.queuePosition = index + 1;
-    entry.estimatedWaitTime = (index + 1) * this.AVERAGE_SERVICE_TIME;
-  });
+    waiting.forEach((entry, index) => {
+      entry.queuePosition = index + 1;
+      entry.estimatedWaitTime = (index + 1) * this.AVERAGE_SERVICE_TIME;
+    });
 
-  // Emit all entries so UI can show full picture
-  this.queueSubject.next([...waiting, ...inProgress, ...completed, ...cancelled]);
-}
+    // Emit all entries so UI can show full picture
+    this.queueSubject.next([...waiting, ...inProgress, ...completed, ...cancelled]);
+  }
 
   // ─────────────────────────────────────────────
   // CONVERT APPWRITE DOCUMENT TO QUEUE ENTRY

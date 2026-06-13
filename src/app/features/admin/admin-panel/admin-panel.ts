@@ -48,18 +48,17 @@ export class AdminPanel implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Subscribe to queue reactively
-    this.queueService.queue$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((queue) => {
-        this.allQueueEntries = queue;
-        this.queueStats = this.queueService.getQueueStats();
-      });
+    // Load fresh queue data first
+    this.queueService.loadQueue().then(() => {
+      this.queueStats = this.queueService.getQueueStats();
+    });
 
-    // Load fresh queue data
-    this.queueService.loadQueue();
+    // Then subscribe for future updates
+    this.queueService.queue$.pipe(takeUntil(this.destroy$)).subscribe((queue) => {
+      this.allQueueEntries = queue;
+      this.queueStats = this.queueService.getQueueStats();
+    });
 
-    // Load users from Appwrite
     this.loadUsers();
   }
 
@@ -75,11 +74,7 @@ export class AdminPanel implements OnInit, OnDestroy {
   async loadUsers(): Promise<void> {
     this.isLoadingUsers = true;
     try {
-      const result = await databases.listDocuments(
-        DB_ID,
-        COLLECTIONS.USERS,
-        [Query.limit(100)]
-      );
+      const result = await databases.listDocuments(DB_ID, COLLECTIONS.USERS, [Query.limit(100)]);
 
       this.systemUsers = result.documents.map((doc) => ({
         id: doc.$id,
@@ -108,8 +103,7 @@ export class AdminPanel implements OnInit, OnDestroy {
       const matchesSearch =
         user.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(this.searchTerm.toLowerCase());
-      const matchesRole =
-        this.selectedRole === 'all' || user.role === this.selectedRole;
+      const matchesRole = this.selectedRole === 'all' || user.role === this.selectedRole;
       return matchesSearch && matchesRole;
     });
   }
@@ -148,19 +142,27 @@ export class AdminPanel implements OnInit, OnDestroy {
 
   getPriorityClass(priority: PatientPriority): string {
     switch (priority) {
-      case PatientPriority.CRITICAL: return 'priority-critical';
-      case PatientPriority.REGULAR: return 'priority-regular';
-      case PatientPriority.DELAYED: return 'priority-delayed';
+      case PatientPriority.CRITICAL:
+        return 'priority-critical';
+      case PatientPriority.REGULAR:
+        return 'priority-regular';
+      case PatientPriority.DELAYED:
+        return 'priority-delayed';
     }
   }
 
   getStatusClass(status: QueueStatus): string {
     switch (status) {
-      case QueueStatus.WAITING: return 'status-waiting';
-      case QueueStatus.IN_PROGRESS: return 'status-in_progress';
-      case QueueStatus.COMPLETED: return 'status-completed';
-      case QueueStatus.CANCELLED: return 'status-cancelled';
-      default: return '';
+      case QueueStatus.WAITING:
+        return 'status-waiting';
+      case QueueStatus.IN_PROGRESS:
+        return 'status-in_progress';
+      case QueueStatus.COMPLETED:
+        return 'status-completed';
+      case QueueStatus.CANCELLED:
+        return 'status-cancelled';
+      default:
+        return '';
     }
   }
 

@@ -4,35 +4,30 @@ import { CommonModule, NgIf } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { Auth } from '../../core/services/auth';
 import { User } from '../../core/models/user.model';
-
+import { Notifications } from '../../core/services/notifications';
 
 @Component({
   selector: 'app-header',
-  imports: [
-    RouterLink,
-    RouterLinkActive,
-    NgIf
-],
+  imports: [RouterLink, RouterLinkActive, NgIf],
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
-export class Header implements OnInit, OnDestroy{
+export class Header implements OnInit, OnDestroy {
   hospitalName = 'Fountain University Teaching Hospital';
   currentUser: User | null = null;
   private userSubscription?: Subscription;
 
   constructor(
     private auth: Auth,
-    private router: Router
-  ){}
+    private router: Router,
+    private notifications: Notifications,
+  ) {}
 
   ngOnInit(): void {
-    //Subscribe to current user changes 
-    this.userSubscription = this.auth.currentUser.subscribe(
-      user => {
-        this.currentUser = user;
-      }
-    );
+    //Subscribe to current user changes
+    this.userSubscription = this.auth.currentUser.subscribe((user) => {
+      this.currentUser = user;
+    });
   }
 
   ngOnDestroy(): void {
@@ -47,16 +42,16 @@ export class Header implements OnInit, OnDestroy{
     return 'Good Evening';
   }
 
-    getUserName(): string {
+  getUserName(): string {
     if (this.currentUser) {
       return this.currentUser.firstName || this.currentUser.email;
     }
     return 'Guest';
   }
 
-   onLogout(): void {
+  onLogout(): void {
     this.auth.logout();
+    this.notifications.info('Logged Out', 'You have been logged out successfully.');
     this.router.navigate(['/login']);
   }
 }
-

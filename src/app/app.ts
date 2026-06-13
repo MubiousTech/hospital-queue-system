@@ -2,8 +2,8 @@ import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Header } from './layout/header/header';
 import { Footer } from './layout/footer/footer';
-import { Dashboard } from './features/dashboard/dashboard';
 import { Sidebar } from './layout/sidebar/sidebar';
+import { NotificationContainer } from './shared/components/notification-container/notification-container';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +12,7 @@ import { Sidebar } from './layout/sidebar/sidebar';
     Header,
     Sidebar,
     Footer,
-    
+    NotificationContainer
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'

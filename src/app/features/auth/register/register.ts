@@ -12,6 +12,8 @@ import {
 import { Router, ActivatedRoute } from '@angular/router';
 import { RouterLink } from '@angular/router';
 import { UserRole } from '../../../core/models/user.model';
+import { account, databases, DB_ID, COLLECTIONS } from '../../../core/services/appwrite.config';
+import { ID } from 'appwrite';
 
 @Component({
   selector: 'app-register',
@@ -111,37 +113,44 @@ export class Register implements OnInit {
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     this.submitted = true;
     if (this.registerForm.invalid) return;
 
-    // Build payload
     const fullName: string = this.registerForm.get('fullName')?.value || '';
     const [firstName, ...rest] = fullName.trim().split(' ');
     const lastName = rest.join(' ') || '';
 
-    const payload: any = {
-      firstName,
-      lastName,
-      email: this.registerForm.get('email')?.value,
-      phoneNumber: this.registerForm.get('phone')?.value,
-      password: this.registerForm.get('password')?.value,
-      role: this.mode === 'patient' ? UserRole.PATIENT : this.registerForm.get('role')?.value,
-    };
+    const email = this.registerForm.get('email')?.value;
+    const password = this.registerForm.get('password')?.value;
+    const phone = this.registerForm.get('phone')?.value;
+    const role = this.mode === 'patient' ? UserRole.PATIENT : this.registerForm.get('role')?.value;
 
-    if (this.mode === 'staff') {
-      payload.staffId = this.registerForm.get('staffId')?.value;
-    }
+    try {
+      // Step 1: Create Appwrite auth account
+      await account.create(ID.unique(), email, password, `${firstName} ${lastName}`);
 
-    // TODO: Replace with real registration API call
-    console.log('Register payload:', payload);
-    alert('Registration successful (mock)');
+      // Step 2: Save user profile to users collection
+      await databases.createDocument(DB_ID, COLLECTIONS.USERS, ID.unique(), {
+        email,
+        firstName,
+        lastName,
+        role,
+      });
 
-    // Redirect after successful registration
-    if (this.mode === 'patient') {
-      this.router.navigate(['/login']);
-    } else {
-      this.router.navigate(['/admin']);
+      alert(`✅ Registration successful! You can now log in.`);
+
+      if (this.mode === 'patient') {
+        this.router.navigate(['/login']);
+      } else {
+        this.router.navigate(['/admin']);
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      const message = error?.message?.includes('already exists')
+        ? 'An account with this email already exists.'
+        : error?.message || 'Registration failed. Please try again.';
+      alert(`❌ ${message}`);
     }
   }
 }

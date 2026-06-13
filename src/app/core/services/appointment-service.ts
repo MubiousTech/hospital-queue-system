@@ -2,11 +2,11 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ID, Query } from 'appwrite';
 import { databases, DB_ID, COLLECTIONS } from './appwrite.config';
+import { DoctorScheduleService } from './doctor-schedule.service';
 import {
   Appointment,
   AppointmentType,
   AppointmentStatus,
-  AppointmentSlot,
 } from '../models/patient.model';
 
 @Injectable({
@@ -16,21 +16,14 @@ export class AppointmentService {
   private appointmentsSubject: BehaviorSubject<Appointment[]>;
   public appointments$: Observable<Appointment[]>;
 
-  private availableDoctors = [
-    'Dr. Sarah Johnson',
-    'Dr. Michael Brown',
-    'Dr. Emily Davis',
-    'Dr. David Wilson',
-  ];
-
-  constructor() {
+  constructor(private doctorSchedule: DoctorScheduleService) {
     this.appointmentsSubject = new BehaviorSubject<Appointment[]>([]);
     this.appointments$ = this.appointmentsSubject.asObservable();
     this.loadAppointments();
   }
 
   // ─────────────────────────────────────────────
-  // LOAD APPOINTMENTS FROM APPWRITE
+  // LOAD FROM APPWRITE
   // ─────────────────────────────────────────────
 
   async loadAppointments(): Promise<void> {
@@ -40,13 +33,10 @@ export class AppointmentService {
         COLLECTIONS.APPOINTMENTS,
         [Query.limit(100), Query.orderDesc('$createdAt')]
       );
-
-      const appointments: Appointment[] = result.documents.map((doc) =>
+      const appointments = result.documents.map((doc) =>
         this.documentToAppointment(doc)
       );
-
       this.appointmentsSubject.next(appointments);
-      console.log(`✅ Appointments loaded: ${appointments.length}`);
     } catch (error) {
       console.error('Failed to load appointments:', error);
     }
@@ -57,44 +47,83 @@ export class AppointmentService {
   }
 
   getAppointmentById(id: string): Appointment | undefined {
-    return this.appointmentsSubject.value.find((apt) => apt.id === id);
-  }
-
-  getAppointmentsByDate(date: Date): Appointment[] {
-    return this.appointmentsSubject.value.filter((apt) => {
-      const aptDate = new Date(apt.appointmentDate);
-      return aptDate.toDateString() === date.toDateString();
-    });
+    return this.appointmentsSubject.value.find((a) => a.id === id);
   }
 
   getAvailableDoctors(): string[] {
-    return this.availableDoctors;
-  }
-
-  getAvailableSlots(date: Date, doctorName: string): AppointmentSlot[] {
-    const workingHours = [
-      '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-      '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-    ];
-
-    const bookedSlots = this.getAppointmentsByDate(date)
-      .filter((apt) => apt.doctorName === doctorName)
-      .map((apt) => apt.appointmentTime);
-
-    return workingHours.map((time) => ({
-      time,
-      available: !bookedSlots.includes(time),
-      doctorName,
-    }));
+    return this.doctorSchedule.getDoctorNames();
   }
 
   // ─────────────────────────────────────────────
-  // BOOK APPOINTMENT
+  // GET AVAILABLE SLOTS — duration-aware
+  // ─────────────────────────────────────────────
+
+  getAvailableSlots(
+    date: Date,
+    doctorName: string,
+    appointmentType: string
+  ) {
+    const doctor = this.doctorSchedule.getDoctorByName(doctorName);
+    if (!doctor) return [];
+
+    // Doctor not working this day
+    if (!this.doctorSchedule.isDoctorAvailableOnDate(doctorName, date)) {
+      return [];
+    }
+
+    // Get existing appointments for this doctor on this date
+    const existing = this.appointmentsSubject.value.filter((apt) => {
+      const aptDate = new Date(apt.appointmentDate).toDateString();
+      return (
+        apt.doctorName === doctorName &&
+        aptDate === date.toDateString() &&
+        apt.status !== AppointmentStatus.CANCELLED
+      );
+    });
+
+    const bookedSlots = existing.map((apt) => ({
+      time: apt.appointmentTime,
+      duration: apt.duration,
+    }));
+
+    return this.doctorSchedule.generateSlots(
+      doctor,
+      date,
+      appointmentType,
+      bookedSlots
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // BOOK APPOINTMENT — with conflict check
   // ─────────────────────────────────────────────
 
   async bookAppointment(
     appointment: Omit<Appointment, 'id' | 'createdAt'>
   ): Promise<Appointment> {
+    // Double-check conflict before saving
+    const slots = this.getAvailableSlots(
+      new Date(appointment.appointmentDate),
+      appointment.doctorName,
+      appointment.appointmentType
+    );
+
+    const selectedSlot = slots.find(
+      (s) => s.time === appointment.appointmentTime
+    );
+
+    if (!selectedSlot) {
+      throw new Error(
+        `${appointment.doctorName} is not available on this date.`
+      );
+    }
+
+    if (!selectedSlot.available) {
+      throw new Error(
+        `This doctor is already booked for the selected time. Please choose another slot.`
+      );
+    }
+
     try {
       const doc = await databases.createDocument(
         DB_ID,
@@ -118,77 +147,56 @@ export class AppointmentService {
       );
 
       const newAppointment = this.documentToAppointment(doc);
-
-      // Update local state
       const current = this.appointmentsSubject.value;
       this.appointmentsSubject.next([newAppointment, ...current]);
 
-      console.log(`✅ Appointment booked: ${doc.$id}`);
       return newAppointment;
-    } catch (error) {
-      console.error('Failed to book appointment:', error);
+    } catch (error: any) {
       throw error;
     }
   }
 
   // ─────────────────────────────────────────────
-  // UPDATE STATUS
+  // UPDATE / CANCEL / DELETE
   // ─────────────────────────────────────────────
 
   async updateAppointmentStatus(
     appointmentId: string,
     status: AppointmentStatus
   ): Promise<void> {
-    try {
-      await databases.updateDocument(
-        DB_ID,
-        COLLECTIONS.APPOINTMENTS,
-        appointmentId,
-        { status }
-      );
-
-      const updated = this.appointmentsSubject.value.map((apt) =>
-        apt.id === appointmentId ? { ...apt, status } : apt
-      );
-      this.appointmentsSubject.next(updated);
-    } catch (error) {
-      console.error('Failed to update appointment status:', error);
-      throw error;
-    }
+    await databases.updateDocument(
+      DB_ID,
+      COLLECTIONS.APPOINTMENTS,
+      appointmentId,
+      { status }
+    );
+    const updated = this.appointmentsSubject.value.map((apt) =>
+      apt.id === appointmentId ? { ...apt, status } : apt
+    );
+    this.appointmentsSubject.next(updated);
   }
-
-  // ─────────────────────────────────────────────
-  // CANCEL APPOINTMENT
-  // ─────────────────────────────────────────────
 
   async cancelAppointment(appointmentId: string): Promise<void> {
-    return this.updateAppointmentStatus(appointmentId, AppointmentStatus.CANCELLED);
+    return this.updateAppointmentStatus(
+      appointmentId,
+      AppointmentStatus.CANCELLED
+    );
   }
-
-  // ─────────────────────────────────────────────
-  // DELETE APPOINTMENT
-  // ─────────────────────────────────────────────
 
   async deleteAppointment(appointmentId: string): Promise<void> {
-    try {
-      await databases.deleteDocument(
-        DB_ID,
-        COLLECTIONS.APPOINTMENTS,
-        appointmentId
-      );
-
-      const filtered = this.appointmentsSubject.value.filter(
-        (apt) => apt.id !== appointmentId
-      );
-      this.appointmentsSubject.next(filtered);
-    } catch (error) {
-      console.error('Failed to delete appointment:', error);
-      throw error;
-    }
+    await databases.deleteDocument(
+      DB_ID,
+      COLLECTIONS.APPOINTMENTS,
+      appointmentId
+    );
+    const filtered = this.appointmentsSubject.value.filter(
+      (apt) => apt.id !== appointmentId
+    );
+    this.appointmentsSubject.next(filtered);
   }
 
   // ─────────────────────────────────────────────
-  // CONVERT APPWRITE DOCUMENT TO APPOINTMENT
+  // DOCUMENT CONVERTER
   // ─────────────────────────────────────────────
 
   private documentToAppointment(doc: any): Appointment {
