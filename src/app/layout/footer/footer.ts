@@ -7,6 +7,6 @@ import { Component } from '@angular/core';
   styleUrl: './footer.css',
 })
 export class Footer {
-  hospitalName = 'Lagos University Teaching Hospital';
+  hospitalName = 'Fountain University Teaching Hospital';
   currentYear = new Date().getFullYear();
 }

@@ -6,6 +6,7 @@ import { Notification, NotificationType } from '../../../core/models/notificatio
 
 @Component({
   selector: 'app-notification-container',
+  standalone: true,
   imports: [CommonModule],
   template: `
     <div class="notification-wrapper">

@@ -233,7 +233,10 @@ this.queueService
       'Patient Registered',
       `${patient.firstName} ${patient.lastName} added to queue at position #${queueEntry.queuePosition}`
     );
-    this.router.navigate(['/queue']);
+    // Wait 1.5 seconds so notification is visible before navigating
+    setTimeout(() => {
+      this.router.navigate(['/queue']);
+    }, 1500);
   })
   .catch(() => {
     this.notifications.error('Registration Failed', 'Failed to register patient. Please try again.');
