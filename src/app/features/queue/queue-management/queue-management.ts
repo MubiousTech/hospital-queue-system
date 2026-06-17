@@ -11,6 +11,8 @@ import {
   QueueStats,
 } from '../../../core/models/patient.model';
 import { Notifications } from '../../../core/services/notifications';
+import { PatientServiceTs } from '../../../core/services/patient.service.ts';
+import { MedicalRecord } from '../../../core/models/patient.model';
 
 @Component({
   selector: 'app-queue-management',
@@ -22,6 +24,7 @@ export class QueueManagement implements OnInit, OnDestroy {
   queueEntries: QueueEntry[] = [];
   queueStats: QueueStats | null = null;
   currentUser: any = null;
+  medicalRecords: Map<string, MedicalRecord> = new Map();
 
   private queueSubscription?: Subscription;
   private refreshSubscription?: Subscription;
@@ -34,6 +37,7 @@ export class QueueManagement implements OnInit, OnDestroy {
     private queueService: Queue,
     private authService: Auth,
     private notifications: Notifications,
+    private patientService: PatientServiceTs,
   ) {}
 
   ngOnInit(): void {
@@ -44,6 +48,7 @@ export class QueueManagement implements OnInit, OnDestroy {
     this.queueSubscription = this.queueService.queue$.subscribe((queue) => {
       this.queueEntries = queue;
       this.queueStats = this.queueService.getQueueStats();
+      this.loadMedicalRecords(queue);
       console.log('🔄 Queue updated:', this.queueEntries.length, 'entries');
     });
 
@@ -59,6 +64,23 @@ export class QueueManagement implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.queueSubscription?.unsubscribe();
     this.refreshSubscription?.unsubscribe();
+  }
+
+  private async loadMedicalRecords(queue: QueueEntry[]): Promise<void> {
+    for (const entry of queue) {
+      if (entry.medicalRecordId && !this.medicalRecords.has(entry.medicalRecordId)) {
+        try {
+          const record = await this.patientService.getPatientMedicalRecord(entry.medicalRecordId);
+          this.medicalRecords.set(entry.medicalRecordId, record);
+        } catch (error) {
+          console.error('Failed to load medical record:', error);
+        }
+      }
+    }
+  }
+
+  getMedicalRecord(entry: QueueEntry): MedicalRecord | undefined {
+    return entry.medicalRecordId ? this.medicalRecords.get(entry.medicalRecordId) : undefined;
   }
 
   /**

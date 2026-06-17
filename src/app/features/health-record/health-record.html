@@ -1,0 +1,388 @@
+<div class="record-container">
+
+  <!-- Header -->
+  <div class="record-header">
+    <h2>🗂️ Patient Records Management</h2>
+    <p>Register patients, manage records, and view medical history</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="switchTab('overview')">
+      📊 Overview
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'register'" (click)="switchTab('register')">
+      ➕ Register Patient
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'search'" (click)="switchTab('search')">
+      🔍 Search / Manage
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="switchTab('history')">
+      📋 Medical History
+    </button>
+  </div>
+
+  <!-- ═══════════════ OVERVIEW TAB ═══════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'overview'">
+    <div class="stats-grid" *ngIf="!isLoadingStats">
+      <div class="stat-card total">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <h3>{{ totalPatients }}</h3>
+          <p>Total Registered Patients</p>
+        </div>
+      </div>
+
+      <div class="stat-card records">
+        <div class="stat-icon">📁</div>
+        <div class="stat-content">
+          <h3>{{ totalMedicalRecords }}</h3>
+          <p>Total Medical Records</p>
+        </div>
+      </div>
+
+      <div class="stat-card new">
+        <div class="stat-icon">🆕</div>
+        <div class="stat-content">
+          <h3>{{ newToday }}</h3>
+          <p>New Patients Today</p>
+        </div>
+      </div>
+
+      <div class="stat-card returning">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-content">
+          <h3>{{ returningPatients }}</h3>
+          <p>Returning Patients</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="loading-state" *ngIf="isLoadingStats">Loading statistics...</div>
+
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <div class="quick-actions-buttons">
+        <button class="btn-quick" (click)="switchTab('register')">➕ Register New Patient</button>
+        <button class="btn-quick" (click)="switchTab('search')">🔍 Search Patients</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ REGISTER TAB ═══════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'register'">
+    <form [formGroup]="registerForm" (ngSubmit)="onRegisterSubmit()" class="record-form">
+
+      <div class="form-section">
+        <h3>👤 Personal Information</h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name <span class="required">*</span></label>
+            <input type="text" formControlName="firstName" [class.error]="isFieldInvalid('firstName')" placeholder="Enter first name" />
+            <span class="error-message" *ngIf="isFieldInvalid('firstName')">{{ getErrorMessage('firstName') }}</span>
+          </div>
+          <div class="form-group">
+            <label>Last Name <span class="required">*</span></label>
+            <input type="text" formControlName="lastName" [class.error]="isFieldInvalid('lastName')" placeholder="Enter last name" />
+            <span class="error-message" *ngIf="isFieldInvalid('lastName')">{{ getErrorMessage('lastName') }}</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Age <span class="required">*</span></label>
+            <input type="number" formControlName="age" [class.error]="isFieldInvalid('age')" placeholder="Enter age" />
+            <span class="error-message" *ngIf="isFieldInvalid('age')">{{ getErrorMessage('age') }}</span>
+          </div>
+          <div class="form-group">
+            <label>Gender <span class="required">*</span></label>
+            <select formControlName="gender" [class.error]="isFieldInvalid('gender')">
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="error-message" *ngIf="isFieldInvalid('gender')">{{ getErrorMessage('gender') }}</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phone Number <span class="required">*</span></label>
+            <input type="tel" formControlName="phoneNumber" [class.error]="isFieldInvalid('phoneNumber')" placeholder="08012345678" />
+            <span class="error-message" *ngIf="isFieldInvalid('phoneNumber')">{{ getErrorMessage('phoneNumber') }}</span>
+          </div>
+          <div class="form-group">
+            <label>Email (Optional)</label>
+            <input type="email" formControlName="email" [class.error]="isFieldInvalid('email')" placeholder="patient@example.com" />
+            <span class="error-message" *ngIf="isFieldInvalid('email')">{{ getErrorMessage('email') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>🏠 Demographic Information</h3>
+
+        <div class="form-group full-width">
+          <label>Address</label>
+          <input type="text" formControlName="address" placeholder="Enter residential address" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Occupation</label>
+            <input type="text" formControlName="occupation" placeholder="Enter occupation" />
+          </div>
+          <div class="form-group">
+            <label>Marital Status</label>
+            <select formControlName="maritalStatus">
+              <option value="">Select status</option>
+              <option *ngFor="let status of maritalStatuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Next of Kin</label>
+            <input type="text" formControlName="nextOfKin" placeholder="Full name" />
+          </div>
+          <div class="form-group">
+            <label>Next of Kin Phone</label>
+            <input type="tel" formControlName="nextOfKinPhone" placeholder="08012345678" />
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Emergency Contact</label>
+          <input type="text" formControlName="emergencyContact" placeholder="Name and phone number" />
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>🩺 Clinical Baseline (Optional)</h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Blood Group</label>
+            <select formControlName="bloodGroup">
+              <option value="">Select blood group</option>
+              <option *ngFor="let bg of bloodGroups" [value]="bg">{{ bg }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Genotype</label>
+            <select formControlName="genotype">
+              <option value="">Select genotype</option>
+              <option *ngFor="let gt of genotypes" [value]="gt">{{ gt }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Known Allergies</label>
+          <textarea formControlName="allergies" rows="2" placeholder="e.g. Penicillin, Peanuts"></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Chronic Conditions</label>
+          <textarea formControlName="chronicConditions" rows="2" placeholder="e.g. Hypertension, Diabetes"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-reset" (click)="resetRegisterForm()">Reset Form</button>
+        <button type="submit" class="btn-submit" [disabled]="isRegistering">
+          <span *ngIf="!isRegistering">➕ Register Patient</span>
+          <span *ngIf="isRegistering">⏳ Registering...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ═══════════════ SEARCH / MANAGE TAB ═══════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'search'">
+    <div class="search-bar">
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (input)="onSearchChange()"
+        placeholder="🔍 Search by name, phone, or patient number..."
+      />
+    </div>
+
+    <div class="loading-state" *ngIf="isLoadingPatients">Loading patients...</div>
+
+    <div class="patients-table" *ngIf="!isLoadingPatients">
+      <div class="table-empty" *ngIf="filteredPatients.length === 0">
+        No patients found.
+      </div>
+
+      <div class="patient-row" *ngFor="let patient of filteredPatients">
+        <div class="patient-row-main">
+          <span class="patient-number-badge">{{ patient.patientNumber }}</span>
+          <div class="patient-row-info">
+            <strong>{{ patient.firstName }} {{ patient.lastName }}</strong>
+            <span class="patient-row-sub">{{ patient.age }} yrs, {{ patient.gender }} · 📞 {{ patient.phoneNumber }}</span>
+          </div>
+        </div>
+        <div class="patient-row-actions">
+          <button class="btn-row-action view" (click)="viewHistory(patient)">📋 History</button>
+          <button class="btn-row-action edit" (click)="openEdit(patient)">✏️ Edit</button>
+          <button class="btn-row-action delete" (click)="deletePatient(patient)">🗑️ Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ HISTORY TAB ═══════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'history'">
+    <div *ngIf="!historyPatient" class="table-empty">
+      Select a patient from Search / Manage to view their medical history.
+    </div>
+
+    <div *ngIf="historyPatient">
+      <div class="history-patient-header">
+        <div>
+          <h3>{{ historyPatient.firstName }} {{ historyPatient.lastName }}</h3>
+          <span class="patient-number-badge">{{ historyPatient.patientNumber }}</span>
+        </div>
+        <button class="btn-row-action edit" (click)="closeHistory()">← Back to Search</button>
+      </div>
+
+      <div class="loading-state" *ngIf="isLoadingHistory">Loading history...</div>
+
+      <div class="table-empty" *ngIf="!isLoadingHistory && historyRecords.length === 0">
+        No medical records found for this patient yet.
+      </div>
+
+      <div class="history-record-card" *ngFor="let record of historyRecords">
+        <div class="history-record-header">
+          <span class="history-date">📅 {{ record.visitDate | date:'medium' }}</span>
+          <span class="history-priority" *ngIf="record.priority">{{ record.priority }}</span>
+        </div>
+
+        <div class="history-record-body">
+          <p *ngIf="record.medicalCondition"><strong>Condition:</strong> {{ record.medicalCondition }}</p>
+          <p *ngIf="record.symptoms"><strong>Symptoms:</strong> {{ record.symptoms }}</p>
+
+          <div class="vital-signs" *ngIf="record.vitalSigns">
+            <span class="vital">BP: {{ record.vitalSigns.bloodPressure }}</span>
+            <span class="vital">HR: {{ record.vitalSigns.heartRate }} bpm</span>
+            <span class="vital">Temp: {{ record.vitalSigns.temperature }}°C</span>
+            <span class="vital">O2: {{ record.vitalSigns.oxygenSaturation }}%</span>
+          </div>
+
+          <p *ngIf="record.nurseNotes"><strong>Nurse Notes:</strong> {{ record.nurseNotes }}</p>
+
+          <hr *ngIf="record.diagnosis || record.treatment || record.doctorNotes" />
+
+          <p *ngIf="record.diagnosis"><strong>Diagnosis:</strong> {{ record.diagnosis }}</p>
+          <p *ngIf="record.treatment"><strong>Treatment:</strong> {{ record.treatment }}</p>
+          <p *ngIf="record.medications"><strong>Medications:</strong> {{ record.medications }}</p>
+          <p *ngIf="record.doctorNotes"><strong>Doctor Notes:</strong> {{ record.doctorNotes }}</p>
+          <p *ngIf="record.assignedDoctor"><strong>Attended by:</strong> {{ record.assignedDoctor }}</p>
+          <p *ngIf="record.followUpDate"><strong>Follow-up:</strong> {{ record.followUpDate | date:'mediumDate' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ EDIT PATIENT MODAL ═══════════════ -->
+  <div class="modal-overlay" *ngIf="editingPatient" (click)="closeEdit()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>✏️ Edit Patient — {{ editingPatient.patientNumber }}</h3>
+        <button class="modal-close" (click)="closeEdit()">✕</button>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="saveEdit()" class="modal-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name <span class="required">*</span></label>
+            <input type="text" formControlName="firstName" />
+          </div>
+          <div class="form-group">
+            <label>Last Name <span class="required">*</span></label>
+            <input type="text" formControlName="lastName" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Age <span class="required">*</span></label>
+            <input type="number" formControlName="age" />
+          </div>
+          <div class="form-group">
+            <label>Gender <span class="required">*</span></label>
+            <select formControlName="gender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phone Number <span class="required">*</span></label>
+            <input type="tel" formControlName="phoneNumber" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" formControlName="email" />
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Address</label>
+          <input type="text" formControlName="address" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Occupation</label>
+            <input type="text" formControlName="occupation" />
+          </div>
+          <div class="form-group">
+            <label>Marital Status</label>
+            <select formControlName="maritalStatus">
+              <option value="">Select status</option>
+              <option *ngFor="let status of maritalStatuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Next of Kin</label>
+            <input type="text" formControlName="nextOfKin" />
+          </div>
+          <div class="form-group">
+            <label>Next of Kin Phone</label>
+            <input type="tel" formControlName="nextOfKinPhone" />
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Emergency Contact</label>
+          <input type="text" formControlName="emergencyContact" />
+        </div>
+
+        <div class="modal-note">
+          ℹ️ Clinical fields (blood group, genotype, allergies, chronic conditions) can only be updated by clinical staff.
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" (click)="closeEdit()">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="isSaving">
+            <span *ngIf="!isSaving">💾 Save Changes</span>
+            <span *ngIf="isSaving">⏳ Saving...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>

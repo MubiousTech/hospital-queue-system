@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, from } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { ID, Query } from 'appwrite';
 import { databases, DB_ID, COLLECTIONS } from './appwrite.config';
 import {
@@ -9,18 +9,21 @@ import {
   QueueStatus,
   QueueStats,
   MedicalConditions,
+  VitalSigns,
 } from '../models/patient.model';
+import { PatientServiceTs } from './patient.service.ts';
 
 @Injectable({
   providedIn: 'root',
 })
+
 export class Queue {
-  private readonly AVERAGE_SERVICE_TIME = 15;
+   private readonly AVERAGE_SERVICE_TIME = 15;
 
   private queueSubject: BehaviorSubject<QueueEntry[]>;
   public queue$: Observable<QueueEntry[]>;
 
-  constructor() {
+  constructor(private patientService: PatientServiceTs) {
     this.queueSubject = new BehaviorSubject<QueueEntry[]>([]);
     this.queue$ = this.queueSubject.asObservable();
     this.loadQueue();
@@ -30,42 +33,38 @@ export class Queue {
   // LOAD QUEUE FROM APPWRITE
   // ─────────────────────────────────────────────
 
-async loadQueue(): Promise<void> {
-  try {
-    const entriesResult = await databases.listDocuments(
-      DB_ID,
-      COLLECTIONS.QUEUE_ENTRIES,
-      [Query.limit(100)]
-    );
+  async loadQueue(): Promise<void> {
+    try {
+      const entriesResult = await databases.listDocuments(
+        DB_ID,
+        COLLECTIONS.QUEUE_ENTRIES,
+        [Query.limit(100)]
+      );
 
-    // Count only active entries (not cancelled) for seed check
-    const activeEntries = entriesResult.documents.filter(
-      (doc) =>
-        doc['status'] === QueueStatus.WAITING ||
-        doc['status'] === QueueStatus.IN_PROGRESS ||
-        doc['status'] === QueueStatus.COMPLETED
-    );
+      const activeEntries = entriesResult.documents.filter(
+        (doc) =>
+          doc['status'] === QueueStatus.WAITING ||
+          doc['status'] === QueueStatus.IN_PROGRESS ||
+          doc['status'] === QueueStatus.COMPLETED
+      );
 
-    // Seed only if no active entries exist
-    if (activeEntries.length === 0) {
-      await this.seedMockData();
-      return this.loadQueue();
+      if (activeEntries.length === 0) {
+        await this.seedMockData();
+        return this.loadQueue();
+      }
+
+      const entries: QueueEntry[] = await Promise.all(
+        activeEntries.map((doc) => this.documentToQueueEntry(doc))
+      );
+
+      this.sortAndUpdateLocal(entries);
+      await this.cleanupStalePatients();
+
+      console.log(`✅ Queue loaded: ${entries.length} entries`);
+    } catch (error) {
+      console.error('Failed to load queue:', error);
     }
-
-    const entries: QueueEntry[] = await Promise.all(
-      activeEntries.map((doc) => this.documentToQueueEntry(doc))
-    );
-
-    this.sortAndUpdateLocal(entries);
-
-    // Clean up stale patients after loading
-    await this.cleanupStalePatients();
-
-    console.log(`✅ Queue loaded: ${entries.length} entries`);
-  } catch (error) {
-    console.error('Failed to load queue:', error);
   }
-}
 
   getCurrentQueue(): QueueEntry[] {
     return this.queueSubject.value;
@@ -73,9 +72,6 @@ async loadQueue(): Promise<void> {
 
   private async cleanupStalePatients(): Promise<void> {
     const currentQueue = this.getCurrentQueue();
-    const now = new Date();
-
-    // Only clean up patients from previous days, not today
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -83,27 +79,23 @@ async loadQueue(): Promise<void> {
       const arrivalTime = new Date(entry.arrivalTime);
       const isFromPreviousDay = arrivalTime < startOfToday;
 
-      // Auto-cancel WAITING patients from previous days
       if (entry.status === QueueStatus.WAITING && isFromPreviousDay) {
         try {
           await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, entry.id, {
             status: QueueStatus.CANCELLED,
           });
           entry.status = QueueStatus.CANCELLED;
-          console.log(`🚫 Auto-cancelled previous day patient: ${entry.patient.firstName}`);
         } catch (error) {
           console.error('Failed to cancel stale patient:', error);
         }
       }
 
-      // Auto-complete IN_PROGRESS patients from previous days
       if (entry.status === QueueStatus.IN_PROGRESS && isFromPreviousDay) {
         try {
           await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, entry.id, {
             status: QueueStatus.COMPLETED,
           });
           entry.status = QueueStatus.COMPLETED;
-          console.log(`✅ Auto-completed previous day patient: ${entry.patient.firstName}`);
         } catch (error) {
           console.error('Failed to auto-complete stale patient:', error);
         }
@@ -114,44 +106,44 @@ async loadQueue(): Promise<void> {
   }
 
   // ─────────────────────────────────────────────
-  // ADD PATIENT TO QUEUE
+  // ADD EXISTING PATIENT TO QUEUE
+  // Patient must already exist (created by Record Officer via PatientService).
+  // This creates a MedicalRecord for THIS visit, then a QueueEntry referencing both.
   // ─────────────────────────────────────────────
 
   async addToQueue(
     patient: Patient,
     priority: PatientPriority,
+    medicalCondition: MedicalConditions,
+    symptoms: string,
+    vitalSigns?: VitalSigns,
     nurseNotes?: string,
   ): Promise<QueueEntry> {
     try {
-      // Step 1: Save patient to patients collection
-      const patientDoc = await databases.createDocument(DB_ID, COLLECTIONS.PATIENTS, ID.unique(), {
-        firstName: patient.firstName,
-        lastName: patient.lastName,
-        age: patient.age,
-        gender: patient.gender,
-        phoneNumber: patient.phoneNumber,
-        email: patient.email || null,
-        medicalCondition: patient.medicalCondition,
-        symptoms: patient.symptoms,
-        registrationDate: new Date().toISOString(),
-        bloodPressure: patient.vitalSigns?.bloodPressure || null,
-        heartRate: patient.vitalSigns?.heartRate || null,
-        temperature: patient.vitalSigns?.temperature || null,
-        oxygenSaturation: patient.vitalSigns?.oxygenSaturation || null,
-      });
-
       const arrivalTime = new Date();
       const priorityScore = this.calculatePriorityScore(priority, arrivalTime);
 
-      // Step 2: Save queue entry to queue_entries collection
+      // Step 1: Create a MedicalRecord for this visit (triage info)
+      const medicalRecord = await this.patientService.createMedicalRecord({
+        patientId: patient.id,
+        visitDate: arrivalTime,
+        medicalCondition,
+        symptoms,
+        vitalSigns,
+        nurseNotes,
+        priority,
+      });
+
+      // Step 2: Create the queue entry, referencing both patient and record
       const queueDoc = await databases.createDocument(
         DB_ID,
         COLLECTIONS.QUEUE_ENTRIES,
         ID.unique(),
         {
-          patientId: patientDoc.$id,
-          priority: priority,
-          priorityScore: priorityScore,
+          patientId: patient.id,
+          medicalRecordId: medicalRecord.id,
+          priority,
+          priorityScore,
           queuePosition: 0,
           arrivalTime: arrivalTime.toISOString(),
           estimatedWaitTime: 0,
@@ -161,10 +153,11 @@ async loadQueue(): Promise<void> {
         },
       );
 
-      // Step 3: Build local QueueEntry object
       const queueEntry: QueueEntry = {
         id: queueDoc.$id,
-        patient: { ...patient, id: patientDoc.$id },
+        patientId: patient.id,
+        patient,
+        medicalRecordId: medicalRecord.id,
         priority,
         priorityScore,
         queuePosition: 0,
@@ -174,7 +167,6 @@ async loadQueue(): Promise<void> {
         notes: nurseNotes,
       };
 
-      // Step 4: Add to local state and resort
       const currentQueue = this.getCurrentQueue();
       currentQueue.push(queueEntry);
       this.sortAndUpdateLocal(currentQueue);
@@ -193,7 +185,6 @@ async loadQueue(): Promise<void> {
 
   async callNextPatient(doctorName: string): Promise<QueueEntry | null> {
     const waitingPatients = this.getCurrentQueue().filter((e) => e.status === QueueStatus.WAITING);
-
     if (waitingPatients.length === 0) return null;
 
     const nextPatient = waitingPatients[0];
@@ -203,6 +194,13 @@ async loadQueue(): Promise<void> {
         status: QueueStatus.IN_PROGRESS,
         assignedDoctor: doctorName,
       });
+
+      // Also tag the medical record with the assigned doctor
+      if (nextPatient.medicalRecordId) {
+        await this.patientService.updateMedicalRecord(nextPatient.medicalRecordId, {
+          assignedDoctor: doctorName,
+        });
+      }
 
       nextPatient.status = QueueStatus.IN_PROGRESS;
       nextPatient.assignedDoctor = doctorName;
@@ -314,7 +312,6 @@ async loadQueue(): Promise<void> {
     const completed = queue.filter((e) => e.status === QueueStatus.COMPLETED);
     const cancelled = queue.filter((e) => e.status === QueueStatus.CANCELLED);
 
-    // Recalculate scores and positions for waiting patients only
     waiting.forEach((e) => {
       e.priorityScore = this.calculatePriorityScore(e.priority, new Date(e.arrivalTime));
     });
@@ -326,7 +323,6 @@ async loadQueue(): Promise<void> {
       entry.estimatedWaitTime = (index + 1) * this.AVERAGE_SERVICE_TIME;
     });
 
-    // Emit all entries so UI can show full picture
     this.queueSubject.next([...waiting, ...inProgress, ...completed, ...cancelled]);
   }
 
@@ -335,33 +331,13 @@ async loadQueue(): Promise<void> {
   // ─────────────────────────────────────────────
 
   private async documentToQueueEntry(doc: any): Promise<QueueEntry> {
-    // Fetch patient document
-    const patientDoc = await databases.getDocument(DB_ID, COLLECTIONS.PATIENTS, doc['patientId']);
-
-    const patient: Patient = {
-      id: patientDoc.$id,
-      firstName: patientDoc['firstName'],
-      lastName: patientDoc['lastName'],
-      age: patientDoc['age'],
-      gender: patientDoc['gender'],
-      phoneNumber: patientDoc['phoneNumber'],
-      email: patientDoc['email'] || undefined,
-      medicalCondition: patientDoc['medicalCondition'],
-      symptoms: patientDoc['symptoms'],
-      registrationDate: new Date(patientDoc['registrationDate']),
-      vitalSigns: patientDoc['bloodPressure']
-        ? {
-            bloodPressure: patientDoc['bloodPressure'],
-            heartRate: patientDoc['heartRate'],
-            temperature: patientDoc['temperature'],
-            oxygenSaturation: patientDoc['oxygenSaturation'],
-          }
-        : undefined,
-    };
+    const patient = await this.patientService.getPatientById(doc['patientId']);
 
     return {
       id: doc.$id,
+      patientId: doc['patientId'],
       patient,
+      medicalRecordId: doc['medicalRecordId'] || undefined,
       priority: doc['priority'] as PatientPriority,
       priorityScore: doc['priorityScore'],
       queuePosition: doc['queuePosition'],
@@ -374,99 +350,78 @@ async loadQueue(): Promise<void> {
   }
 
   // ─────────────────────────────────────────────
-  // SEED MOCK DATA (only runs if collection empty)
+  // SEED MOCK DATA — now creates real Patients via PatientService first,
+  // so the new search-based triage flow has someone to find.
   // ─────────────────────────────────────────────
 
   private async seedMockData(): Promise<void> {
-    console.log('🌱 Seeding mock queue data...');
+    console.log('🌱 Seeding mock patients + queue data...');
 
-    const mockPatients = [
+    const mockData = [
       {
-        firstName: 'Adewale',
-        lastName: 'Okafor',
-        age: 45,
-        gender: 'Male',
+        firstName: 'Adewale', lastName: 'Okafor', age: 45, gender: 'Male' as const,
         phoneNumber: '08012345678',
         medicalCondition: MedicalConditions.CARDIAC_ARREST,
         symptoms: 'Severe chest pain, shortness of breath',
         priority: PatientPriority.CRITICAL,
         arrivalOffset: 30,
-        vitalSigns: {
-          bloodPressure: '160/100',
-          heartRate: 110,
-          temperature: 37.2,
-          oxygenSaturation: 88,
-        },
+        vitalSigns: { bloodPressure: '160/100', heartRate: 110, temperature: 37.2, oxygenSaturation: 88 },
       },
       {
-        firstName: 'Chioma',
-        lastName: 'Nwosu',
-        age: 28,
-        gender: 'Female',
+        firstName: 'Chioma', lastName: 'Nwosu', age: 28, gender: 'Female' as const,
         phoneNumber: '08087654321',
         medicalCondition: MedicalConditions.ROUTINE_CHECKUP,
         symptoms: 'Annual health checkup',
         priority: PatientPriority.DELAYED,
         arrivalOffset: 45,
-        vitalSigns: null,
+        vitalSigns: undefined,
       },
       {
-        firstName: 'Ibrahim',
-        lastName: 'Mohammed',
-        age: 62,
-        gender: 'Male',
+        firstName: 'Ibrahim', lastName: 'Mohammed', age: 62, gender: 'Male' as const,
         phoneNumber: '08098765432',
         medicalCondition: MedicalConditions.FEVER,
         symptoms: 'High fever for 2 days, body aches',
         priority: PatientPriority.REGULAR,
         arrivalOffset: 20,
-        vitalSigns: {
-          bloodPressure: '130/85',
-          heartRate: 95,
-          temperature: 39.5,
-          oxygenSaturation: 96,
-        },
+        vitalSigns: { bloodPressure: '130/85', heartRate: 95, temperature: 39.5, oxygenSaturation: 96 },
       },
       {
-        firstName: 'Blessing',
-        lastName: 'Eze',
-        age: 35,
-        gender: 'Female',
+        firstName: 'Blessing', lastName: 'Eze', age: 35, gender: 'Female' as const,
         phoneNumber: '08076543210',
         medicalCondition: MedicalConditions.SEVERE_TRAUMA,
         symptoms: 'Car accident - multiple injuries',
         priority: PatientPriority.CRITICAL,
         arrivalOffset: 10,
-        vitalSigns: {
-          bloodPressure: '90/60',
-          heartRate: 120,
-          temperature: 36.8,
-          oxygenSaturation: 90,
-        },
+        vitalSigns: { bloodPressure: '90/60', heartRate: 120, temperature: 36.8, oxygenSaturation: 90 },
       },
     ];
 
-    for (const mock of mockPatients) {
+    for (const mock of mockData) {
       const arrivalTime = new Date(Date.now() - mock.arrivalOffset * 60000);
 
-      const patientDoc = await databases.createDocument(DB_ID, COLLECTIONS.PATIENTS, ID.unique(), {
+      // Create a real, permanent Patient record via PatientService
+      const patient = await this.patientService.createPatient({
         firstName: mock.firstName,
         lastName: mock.lastName,
         age: mock.age,
         gender: mock.gender,
         phoneNumber: mock.phoneNumber,
-        email: null,
-        medicalCondition: mock.medicalCondition,
-        symptoms: mock.symptoms,
-        registrationDate: arrivalTime.toISOString(),
-        bloodPressure: mock.vitalSigns?.bloodPressure || null,
-        heartRate: mock.vitalSigns?.heartRate || null,
-        temperature: mock.vitalSigns?.temperature || null,
-        oxygenSaturation: mock.vitalSigns?.oxygenSaturation || null,
       });
 
+      // Create the visit's MedicalRecord
+      const medicalRecord = await this.patientService.createMedicalRecord({
+        patientId: patient.id,
+        visitDate: arrivalTime,
+        medicalCondition: mock.medicalCondition,
+        symptoms: mock.symptoms,
+        vitalSigns: mock.vitalSigns,
+        priority: mock.priority,
+      });
+
+      // Create the queue entry referencing both
       await databases.createDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, ID.unique(), {
-        patientId: patientDoc.$id,
+        patientId: patient.id,
+        medicalRecordId: medicalRecord.id,
         priority: mock.priority,
         priorityScore: this.calculatePriorityScore(mock.priority, arrivalTime),
         queuePosition: 0,

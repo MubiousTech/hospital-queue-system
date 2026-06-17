@@ -31,70 +31,149 @@ export enum MedicalConditions {
 
 // Queue Status
 export enum QueueStatus {
-  WAITING = 'WAITING', // In queue
-  IN_PROGRESS = 'IN_PROGRESS', // Currently being attended
-  COMPLETED = 'COMPLETED', // Attended and discharged
-  CANCELLED = 'CANCELLED', // Patient left or no-show
+  WAITING = 'WAITING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
 }
 
-// Patient Interface
+// ─────────────────────────────────────────────
+// PATIENT — now a permanent record, not a queue-only object
+// ─────────────────────────────────────────────
+
+export enum MaritalStatus {
+  SINGLE = 'Single',
+  MARRIED = 'Married',
+  DIVORCED = 'Divorced',
+  WIDOWED = 'Widowed',
+}
+
+export enum BloodGroup {
+  A_POSITIVE = 'A+',
+  A_NEGATIVE = 'A-',
+  B_POSITIVE = 'B+',
+  B_NEGATIVE = 'B-',
+  AB_POSITIVE = 'AB+',
+  AB_NEGATIVE = 'AB-',
+  O_POSITIVE = 'O+',
+  O_NEGATIVE = 'O-',
+  UNKNOWN = 'Unknown',
+}
+
+export enum Genotype {
+  AA = 'AA',
+  AS = 'AS',
+  SS = 'SS',
+  AC = 'AC',
+  SC = 'SC',
+  UNKNOWN = 'Unknown',
+}
+
+// Patient Interface — registered ONCE by Record Officer, reused across visits
 export interface Patient {
-  id: string; // Unique identifier (e.g., "P001", "P002")
+  id: string;                  // Appwrite document ID
+  patientNumber: string;       // Auto-generated, e.g. "P-0001" — human-friendly permanent ID
   firstName: string;
   lastName: string;
   age: number;
   gender: 'Male' | 'Female' | 'Other';
   phoneNumber: string;
   email?: string;
-  medicalCondition: MedicalConditions;
-  symptoms: string; // Free text description
-  vitalSigns?: VitalSigns;
-  registrationDate: Date;
+
+  // Demographic / biodata fields (Record Officer collects these)
+  address?: string;
+  occupation?: string;
+  maritalStatus?: MaritalStatus;
+  nextOfKin?: string;
+  nextOfKinPhone?: string;
+  emergencyContact?: string;
+
+  // Clinical baseline (rarely changes visit to visit)
+  bloodGroup?: BloodGroup;
+  genotype?: Genotype;
+  allergies?: string;           // free text, e.g. "Penicillin, Peanuts"
+  chronicConditions?: string;   // free text, e.g. "Hypertension, Diabetes"
+
+  registrationDate: Date;       // first-ever registration date
 }
 
-// Vital Signs (measured during triage)
+// Vital Signs (measured during triage, per-visit)
 export interface VitalSigns {
-  bloodPressure: string;            // e.g., "120/80"
-  heartRate: number;                // beats per minute
-  temperature: number;              // Celsius
-  oxygenSaturation: number;         // percentage (%)
+  bloodPressure: string;
+  heartRate: number;
+  temperature: number;
+  oxygenSaturation: number;
+}
+
+// ─────────────────────────────────────────────
+// MEDICAL RECORD — one per visit, accumulates over time per patient
+// ─────────────────────────────────────────────
+
+export interface MedicalRecord {
+  id: string;
+  patientId: string;            // links back to Patient.id
+  visitDate: Date;
+
+  // Triage-stage info (filled by Nurse)
+  medicalCondition?: MedicalConditions;
+  symptoms?: string;
+  vitalSigns?: VitalSigns;
+  nurseNotes?: string;
+  priority?: PatientPriority;
+
+  // Consultation-stage info (filled by Doctor)
+  diagnosis?: string;
+  treatment?: string;
+  medications?: string;
+  doctorNotes?: string;
+  followUpDate?: Date;
+
+  assignedDoctor?: string;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
- * Queue Entry - Represents a patient in the queue
+ * Queue Entry — references an EXISTING patient record, never creates one
  */
 export interface QueueEntry {
-  id: string;                       // Unique queue entry ID
-  patient: Patient;
+  id: string;
+  patientId: string;            // reference to Patient.id
+  patient: Patient;             // hydrated patient object for display
+  medicalRecordId?: string;     // links to the MedicalRecord created for this visit
   priority: PatientPriority;
-  priorityScore: number;            // Calculated score for sorting
-  queuePosition: number;            // Current position (1 = next to be served)
-  arrivalTime: Date;                // When patient joined queue
-  estimatedWaitTime: number;        // Minutes until patient is seen
+  priorityScore: number;
+  queuePosition: number;
+  arrivalTime: Date;
+  estimatedWaitTime: number;
   status: QueueStatus;
-  assignedDoctor?: string;          // Doctor name/ID
-  notes?: string;                   // Nurse/doctor notes
+  assignedDoctor?: string;
+  notes?: string;
 }
 
-// Queue Statistic
+// Queue Statistics
 export interface QueueStats {
-    totalPatients: number;
-    criticalCount: number;
-    regularCount: number;
-    delayedCount: number;
-    averageWaitTime: number; //Minutes
-    longestWaitTime: number; //Minutes
-    patientsServedToday: number;
-    totalInQueue: number;
-
+  totalPatients: number;
+  criticalCount: number;
+  regularCount: number;
+  delayedCount: number;
+  averageWaitTime: number;
+  longestWaitTime: number;
+  patientsServedToday: number;
+  totalInQueue: number;
 }
+
+// ─────────────────────────────────────────────
+// APPOINTMENTS (unchanged — preserved as-is)
+// ─────────────────────────────────────────────
 
 export enum AppointmentType {
   CONSULTATION = 'CONSULTATION',
   FOLLOW_UP = 'FOLLOW_UP',
   SURGERY = 'SURGERY',
   LAB_TEST = 'LAB_TEST',
-  VACCINATION = 'VACCINATON'
+  VACCINATION = 'VACCINATON',
 }
 
 export enum AppointmentStatus {
@@ -102,7 +181,7 @@ export enum AppointmentStatus {
   CONFIRMED = 'CONFIRMED',
   CANCELLED = 'CANCELLED',
   COMPLETED = 'COMPLETED',
-  NO_SHOW = 'NO_SHOW'
+  NO_SHOW = 'NO_SHOW',
 }
 
 export interface Appointment {
@@ -115,7 +194,7 @@ export interface Appointment {
   appointmentType: AppointmentType;
   appointmentDate: Date;
   appointmentTime: string;
-  duration: number; // in minutes
+  duration: number;
   status: AppointmentStatus;
   reason: string;
   notes?: string;

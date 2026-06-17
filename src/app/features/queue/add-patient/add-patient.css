@@ -172,6 +172,134 @@ textarea.error {
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
+/* ─── Patient Search ─── */
+.search-group {
+  position: relative;
+}
+
+.search-results {
+  margin-top: 10px;
+  border: 2px solid #ecf0f1;
+  border-radius: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: white;
+}
+
+.search-result-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #ecf0f1;
+  transition: background 0.2s ease;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: #f4f6ff;
+}
+
+.result-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.result-main strong {
+  color: #2c3e50;
+  font-size: 15px;
+}
+
+.result-number {
+  background: #667eea;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.result-sub {
+  color: #7f8c8d;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.search-empty {
+  margin-top: 10px;
+  padding: 12px 15px;
+  color: #7f8c8d;
+  font-size: 14px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+/* ─── Selected Patient Card ─── */
+.selected-patient-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  background: #f4f6ff;
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.selected-patient-info {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.selected-patient-avatar {
+  font-size: 2rem;
+  background: white;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.selected-patient-info strong {
+  display: block;
+  color: #2c3e50;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.btn-change-patient {
+  background: white;
+  border: 2px solid #667eea;
+  color: #667eea;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-change-patient:hover {
+  background: #667eea;
+  color: white;
+}
+
+/* ─── Disabled submit ─── */
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .form-row {

@@ -2,17 +2,13 @@
   <!-- Header Section -->
   <div class="queue-header">
     <h2>⏱️ Queue Management Dashboard</h2>
-   <div class="header-actions">
-     <button class="btn-add" routerLink="/queue/add-patient">
-      ➕ Add New Patient
-    </button>
-     <button class="btn-primary" (click)="callNextPatient()">
-      🔔 Call Next Patient
-    </button>
-   </div>
+    <div class="header-actions">
+      <button class="btn-add" routerLink="/queue/add-patient">➕ Add New Patient</button>
+      <button class="btn-primary" (click)="callNextPatient()">🔔 Call Next Patient</button>
+    </div>
   </div>
 
-   <!-- Statistics Section -->
+  <!-- Statistics Section -->
   <div class="stats-grid" *ngIf="queueStats">
     <div class="stat-card total">
       <div class="stat-icon">👥</div>
@@ -22,7 +18,7 @@
       </div>
     </div>
 
-        <div class="stat-card critical">
+    <div class="stat-card critical">
       <div class="stat-icon">🔴</div>
       <div class="stat-content">
         <h3>{{ queueStats.criticalCount }}</h3>
@@ -30,7 +26,7 @@
       </div>
     </div>
 
-      <div class="stat-card regular">
+    <div class="stat-card regular">
       <div class="stat-icon">🔵</div>
       <div class="stat-content">
         <h3>{{ queueStats.regularCount }}</h3>
@@ -46,7 +42,7 @@
       </div>
     </div>
 
-     <div class="stat-card average">
+    <div class="stat-card average">
       <div class="stat-icon">⏰</div>
       <div class="stat-content">
         <h3>{{ formatWaitTime(queueStats.averageWaitTime) }}</h3>
@@ -63,40 +59,58 @@
     </div>
   </div>
 
-    <!-- Queue Display by Priority -->
+  <!-- Queue Display by Priority -->
   <div class="priority-sections">
-    
     <!-- CRITICAL Patients -->
-    <div class="priority-section" *ngIf="getPatientsByPriority(PatientPriority.CRITICAL).length > 0">
+    <div
+      class="priority-section"
+      *ngIf="getPatientsByPriority(PatientPriority.CRITICAL).length > 0"
+    >
       <div class="priority-header critical">
-        <h3>🔴 CRITICAL PRIORITY ({{ getPatientsByPriority(PatientPriority.CRITICAL).length }} patients)</h3>
+        <h3>
+          🔴 CRITICAL PRIORITY ({{ getPatientsByPriority(PatientPriority.CRITICAL).length }}
+          patients)
+        </h3>
       </div>
 
-        <div class="patient-list">
-        <div class="patient-card critical" *ngFor="let entry of getPatientsByPriority(PatientPriority.CRITICAL)">
+      <div class="patient-list">
+        <div
+          class="patient-card critical"
+          *ngFor="let entry of getPatientsByPriority(PatientPriority.CRITICAL)"
+        >
           <!-- Queue Position Badge -->
-          <div class="position-badge critical">
-            #{{ entry.queuePosition }}
-          </div>
+          <div class="position-badge critical">#{{ entry.queuePosition }}</div>
 
-           <!-- Patient Info -->
+          <!-- Patient Info -->
           <div class="patient-info">
             <h4>{{ entry.patient.firstName }} {{ entry.patient.lastName }}</h4>
             <p class="patient-details">
-              <span class="detail-item">👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span>
+              <span class="detail-item"
+                >👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span
+              >
               <span class="detail-item">📱 {{ entry.patient.phoneNumber }}</span>
             </p>
-            <p class="medical-info">
-              <strong>Condition:</strong> {{ entry.patient.medicalCondition }}
+            <p class="medical-info" *ngIf="getMedicalRecord(entry)">
+              <strong>Condition:</strong> {{ getMedicalRecord(entry)?.medicalCondition }}
             </p>
-            <p class="symptoms">{{ entry.patient.symptoms }}</p>
-            
+            <p class="symptoms" *ngIf="getMedicalRecord(entry)">
+              {{ getMedicalRecord(entry)?.symptoms }}
+            </p>
+
             <!-- Vital Signs (if available) -->
-            <div class="vital-signs" *ngIf="entry.patient.vitalSigns">
-              <span class="vital">BP: {{ entry.patient.vitalSigns.bloodPressure }}</span>
-              <span class="vital">HR: {{ entry.patient.vitalSigns.heartRate }} bpm</span>
-              <span class="vital">Temp: {{ entry.patient.vitalSigns.temperature }}°C</span>
-              <span class="vital">O2: {{ entry.patient.vitalSigns.oxygenSaturation }}%</span>
+            <div class="vital-signs" *ngIf="getMedicalRecord(entry)?.vitalSigns">
+              <span class="vital"
+                >BP: {{ getMedicalRecord(entry)?.vitalSigns?.bloodPressure }}</span
+              >
+              <span class="vital"
+                >HR: {{ getMedicalRecord(entry)?.vitalSigns?.heartRate }} bpm</span
+              >
+              <span class="vital"
+                >Temp: {{ getMedicalRecord(entry)?.vitalSigns?.temperature }}°C</span
+              >
+              <span class="vital"
+                >O2: {{ getMedicalRecord(entry)?.vitalSigns?.oxygenSaturation }}%</span
+              >
             </div>
           </div>
 
@@ -104,7 +118,9 @@
           <div class="wait-info">
             <div class="wait-time">
               <span class="label">Current Wait:</span>
-              <span class="time critical">{{ formatWaitTime(getCurrentWaitTime(entry.arrivalTime)) }}</span>
+              <span class="time critical">{{
+                formatWaitTime(getCurrentWaitTime(entry.arrivalTime))
+              }}</span>
             </div>
             <div class="estimated-time">
               <span class="label">Estimated:</span>
@@ -117,10 +133,20 @@
             <button class="btn-call" (click)="callNextPatient()" *ngIf="entry.queuePosition === 1">
               🔔 Call Now
             </button>
-            <button class="btn-complete" (click)="completePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)">
+            <button
+              class="btn-complete"
+              (click)="
+                completePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
+              "
+            >
               ✅ Complete
             </button>
-            <button class="btn-remove" (click)="removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)">
+            <button
+              class="btn-remove"
+              (click)="
+                removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
+              "
+            >
               🚫 Remove
             </button>
           </div>
@@ -131,29 +157,40 @@
     <!-- REGULAR Patients -->
     <div class="priority-section" *ngIf="getPatientsByPriority(PatientPriority.REGULAR).length > 0">
       <div class="priority-header regular">
-        <h3>🔵 REGULAR PRIORITY ({{ getPatientsByPriority(PatientPriority.REGULAR).length }} patients)</h3>
+        <h3>
+          🔵 REGULAR PRIORITY ({{ getPatientsByPriority(PatientPriority.REGULAR).length }} patients)
+        </h3>
       </div>
-      
+
       <div class="patient-list">
-        <div class="patient-card regular" *ngFor="let entry of getPatientsByPriority(PatientPriority.REGULAR)">
+        <div
+          class="patient-card regular"
+          *ngFor="let entry of getPatientsByPriority(PatientPriority.REGULAR)"
+        >
           <div class="position-badge regular">#{{ entry.queuePosition }}</div>
-          
+
           <div class="patient-info">
             <h4>{{ entry.patient.firstName }} {{ entry.patient.lastName }}</h4>
             <p class="patient-details">
-              <span class="detail-item">👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span>
+              <span class="detail-item"
+                >👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span
+              >
               <span class="detail-item">📱 {{ entry.patient.phoneNumber }}</span>
             </p>
-            <p class="medical-info">
-              <strong>Condition:</strong> {{ entry.patient.medicalCondition }}
+            <p class="medical-info" *ngIf="getMedicalRecord(entry)">
+              <strong>Condition:</strong> {{ getMedicalRecord(entry)?.medicalCondition }}
             </p>
-            <p class="symptoms">{{ entry.patient.symptoms }}</p>
+            <p class="symptoms" *ngIf="getMedicalRecord(entry)">
+              {{ getMedicalRecord(entry)?.symptoms }}
+            </p>
           </div>
 
           <div class="wait-info">
             <div class="wait-time">
               <span class="label">Current Wait:</span>
-              <span class="time regular">{{ formatWaitTime(getCurrentWaitTime(entry.arrivalTime)) }}</span>
+              <span class="time regular">{{
+                formatWaitTime(getCurrentWaitTime(entry.arrivalTime))
+              }}</span>
             </div>
             <div class="estimated-time">
               <span class="label">Estimated:</span>
@@ -162,10 +199,20 @@
           </div>
 
           <div class="patient-actions">
-            <button class="btn-complete" (click)="completePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)">
+            <button
+              class="btn-complete"
+              (click)="
+                completePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
+              "
+            >
               ✅ Complete
             </button>
-            <button class="btn-remove" (click)="removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)">
+            <button
+              class="btn-remove"
+              (click)="
+                removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
+              "
+            >
               🚫 Remove
             </button>
           </div>
@@ -176,29 +223,40 @@
     <!-- DELAYED Patients -->
     <div class="priority-section" *ngIf="getPatientsByPriority(PatientPriority.DELAYED).length > 0">
       <div class="priority-header delayed">
-        <h3>🟡 DELAYED PRIORITY ({{ getPatientsByPriority(PatientPriority.DELAYED).length }} patients)</h3>
+        <h3>
+          🟡 DELAYED PRIORITY ({{ getPatientsByPriority(PatientPriority.DELAYED).length }} patients)
+        </h3>
       </div>
-      
+
       <div class="patient-list">
-        <div class="patient-card delayed" *ngFor="let entry of getPatientsByPriority(PatientPriority.DELAYED)">
+        <div
+          class="patient-card delayed"
+          *ngFor="let entry of getPatientsByPriority(PatientPriority.DELAYED)"
+        >
           <div class="position-badge delayed">#{{ entry.queuePosition }}</div>
-          
+
           <div class="patient-info">
             <h4>{{ entry.patient.firstName }} {{ entry.patient.lastName }}</h4>
             <p class="patient-details">
-              <span class="detail-item">👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span>
+              <span class="detail-item"
+                >👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span
+              >
               <span class="detail-item">📱 {{ entry.patient.phoneNumber }}</span>
             </p>
-            <p class="medical-info">
-              <strong>Condition:</strong> {{ entry.patient.medicalCondition }}
+            <p class="medical-info" *ngIf="getMedicalRecord(entry)">
+              <strong>Condition:</strong> {{ getMedicalRecord(entry)?.medicalCondition }}
             </p>
-            <p class="symptoms">{{ entry.patient.symptoms }}</p>
+            <p class="symptoms" *ngIf="getMedicalRecord(entry)">
+              {{ getMedicalRecord(entry)?.symptoms }}
+            </p>
           </div>
 
           <div class="wait-info">
             <div class="wait-time">
               <span class="label">Current Wait:</span>
-              <span class="time delayed">{{ formatWaitTime(getCurrentWaitTime(entry.arrivalTime)) }}</span>
+              <span class="time delayed">{{
+                formatWaitTime(getCurrentWaitTime(entry.arrivalTime))
+              }}</span>
             </div>
             <div class="estimated-time">
               <span class="label">Estimated:</span>
@@ -207,10 +265,20 @@
           </div>
 
           <div class="patient-actions">
-            <button class="btn-complete" (click)="completePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)">
+            <button
+              class="btn-complete"
+              (click)="
+                completePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
+              "
+            >
               ✅ Complete
             </button>
-            <button class="btn-remove" (click)="removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)">
+            <button
+              class="btn-remove"
+              (click)="
+                removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
+              "
+            >
               🚫 Remove
             </button>
           </div>

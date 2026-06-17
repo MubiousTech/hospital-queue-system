@@ -8,6 +8,7 @@
     <nav class="nav-menu" *ngIf="currentUser">
       <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">Dashboard</a>
       <a routerLink="/appointments" routerLinkActive="active" class="nav-link">Appointments </a>
+      <a routerLink="/health-record" routerLinkActive="active" class="nav-link">Records</a>
       <a routerLink="/queue" routerLinkActive="active" class="nav-link">Queue</a>
       <a routerLink="/admin" routerLinkActive="active" class="nav-link" *ngIf="currentUser.role === `admin`">Admin</a>
     </nav>

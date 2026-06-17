@@ -17,4 +17,5 @@ export const COLLECTIONS = {
   QUEUE_ENTRIES: 'queue_entries',
   APPOINTMENTS: 'appointments',
   USERS: 'users',
+   MEDICAL_RECORDS: 'medical_records',
 };

@@ -1,111 +1,82 @@
 <div class="add-patient-container">
   <div class="form-header">
-    <h2>➕ Register New Patient</h2>
-    <p>Fill in patient information and assign priority level</p>
+    <h2>🩺 Patient Triage</h2>
+    <p>Search for a registered patient, then record triage details and assign priority</p>
   </div>
 
-  <form [formGroup]="patientForm" (ngSubmit)="onSubmit()" class="patient-form">
-    
-    <!-- Patient Information Section -->
+  <form [formGroup]="triageForm" (ngSubmit)="onSubmit()" class="patient-form">
+
+    <!-- Patient Search Section -->
     <div class="form-section">
-      <h3>👤 Patient Information</h3>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label>First Name <span class="required">*</span></label>
-          <input 
-            type="text" 
-            formControlName="firstName"
-            placeholder="Enter first name"
-            [class.error]="isFieldInvalid('firstName')"
-          />
-          <span class="error-message" *ngIf="isFieldInvalid('firstName')">
-            {{ getErrorMessage('firstName') }}
-          </span>
-        </div>
+      <h3>🔍 Find Patient</h3>
 
-        <div class="form-group">
-          <label>Last Name <span class="required">*</span></label>
-          <input 
-            type="text" 
-            formControlName="lastName"
-            placeholder="Enter last name"
-            [class.error]="isFieldInvalid('lastName')"
-          />
-          <span class="error-message" *ngIf="isFieldInvalid('lastName')">
-            {{ getErrorMessage('lastName') }}
-          </span>
-        </div>
-      </div>
+      <div class="form-group full-width search-group" *ngIf="!selectedPatient">
+        <label>Search by Name, Phone, or Patient Number <span class="required">*</span></label>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          [ngModelOptions]="{standalone: true}"
+          (input)="onSearchChange()"
+          placeholder="e.g. Adewale, 08012345678, or P-0001"
+        />
+        <span class="error-message" *ngIf="submitted && !selectedPatient">
+          Please search for and select a registered patient
+        </span>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Age <span class="required">*</span></label>
-          <input 
-            type="number" 
-            formControlName="age"
-            placeholder="Enter age"
-            [class.error]="isFieldInvalid('age')"
-          />
-          <span class="error-message" *ngIf="isFieldInvalid('age')">
-            {{ getErrorMessage('age') }}
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label>Gender <span class="required">*</span></label>
-          <select 
-            formControlName="gender"
-            [class.error]="isFieldInvalid('gender')"
+        <div class="search-results" *ngIf="searchResults.length > 0">
+          <div
+            class="search-result-item"
+            *ngFor="let p of searchResults"
+            (click)="selectPatient(p)"
           >
-            <option value="">Select gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-          <span class="error-message" *ngIf="isFieldInvalid('gender')">
-            {{ getErrorMessage('gender') }}
-          </span>
+            <div class="result-main">
+              <strong>{{ p.firstName }} {{ p.lastName }}</strong>
+              <span class="result-number">{{ p.patientNumber }}</span>
+            </div>
+            <div class="result-sub">
+              {{ p.age }} yrs, {{ p.gender }} · 📞 {{ p.phoneNumber }}
+            </div>
+          </div>
+        </div>
+
+        <div class="search-empty" *ngIf="isSearching">Searching...</div>
+        <div class="search-empty" *ngIf="!isSearching && searchTerm && searchResults.length === 0">
+          No matching patient found. Ask Record Officer to register this patient first.
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Phone Number <span class="required">*</span></label>
-          <input 
-            type="tel" 
-            formControlName="phoneNumber"
-            placeholder="08012345678"
-            [class.error]="isFieldInvalid('phoneNumber')"
-          />
-          <span class="error-message" *ngIf="isFieldInvalid('phoneNumber')">
-            {{ getErrorMessage('phoneNumber') }}
-          </span>
+      <!-- Selected Patient Confirmation Card -->
+      <div class="selected-patient-card" *ngIf="selectedPatient">
+        <div class="selected-patient-info">
+          <div class="selected-patient-avatar">👤</div>
+          <div>
+            <strong>{{ selectedPatient.firstName }} {{ selectedPatient.lastName }}</strong>
+            <span class="result-number">{{ selectedPatient.patientNumber }}</span>
+            <div class="result-sub">
+              {{ selectedPatient.age }} yrs, {{ selectedPatient.gender }} · 📞 {{ selectedPatient.phoneNumber }}
+            </div>
+            <div class="result-sub" *ngIf="selectedPatient.allergies">
+              ⚠️ Allergies: {{ selectedPatient.allergies }}
+            </div>
+            <div class="result-sub" *ngIf="selectedPatient.chronicConditions">
+              📋 Chronic: {{ selectedPatient.chronicConditions }}
+            </div>
+          </div>
         </div>
-
-        <div class="form-group">
-          <label>Email (Optional)</label>
-          <input 
-            type="email" 
-            formControlName="email"
-            placeholder="patient@example.com"
-            [class.error]="isFieldInvalid('email')"
-          />
-          <span class="error-message" *ngIf="isFieldInvalid('email')">
-            {{ getErrorMessage('email') }}
-          </span>
-        </div>
+        <button type="button" class="btn-change-patient" (click)="clearSelectedPatient()">
+          Change Patient
+        </button>
       </div>
     </div>
 
     <!-- Medical Information Section -->
-    <div class="form-section">
+    <div class="form-section" *ngIf="selectedPatient">
       <h3>🏥 Medical Information</h3>
-      
+
       <div class="form-row">
         <div class="form-group">
           <label>Medical Condition <span class="required">*</span></label>
-          <select 
+          <select
             formControlName="medicalCondition"
             [class.error]="isFieldInvalid('medicalCondition')"
           >
@@ -121,7 +92,7 @@
 
         <div class="form-group">
           <label>Priority Level <span class="required">*</span></label>
-          <select 
+          <select
             formControlName="priority"
             [class.error]="isFieldInvalid('priority')"
           >
@@ -138,7 +109,7 @@
 
       <div class="form-group full-width">
         <label>Symptoms <span class="required">*</span></label>
-        <textarea 
+        <textarea
           formControlName="symptoms"
           placeholder="Describe patient symptoms in detail (minimum 10 characters)"
           rows="4"
@@ -150,15 +121,15 @@
       </div>
     </div>
 
-    <!-- Vital Signs Section (shown for critical patients) -->
-    <div class="form-section" *ngIf="showVitalSigns">
+    <!-- Vital Signs Section -->
+    <div class="form-section" *ngIf="selectedPatient && showVitalSigns">
       <h3>💉 Vital Signs <span class="critical-badge">Required for Critical Patients</span></h3>
-      
+
       <div class="form-row">
         <div class="form-group">
           <label>Blood Pressure <span class="required">*</span></label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             formControlName="bloodPressure"
             placeholder="120/80"
             [class.error]="isFieldInvalid('bloodPressure')"
@@ -170,8 +141,8 @@
 
         <div class="form-group">
           <label>Heart Rate (bpm) <span class="required">*</span></label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             formControlName="heartRate"
             placeholder="72"
             [class.error]="isFieldInvalid('heartRate')"
@@ -185,8 +156,8 @@
       <div class="form-row">
         <div class="form-group">
           <label>Temperature (°C) <span class="required">*</span></label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             step="0.1"
             formControlName="temperature"
             placeholder="37.0"
@@ -199,8 +170,8 @@
 
         <div class="form-group">
           <label>Oxygen Saturation (%) <span class="required">*</span></label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             formControlName="oxygenSaturation"
             placeholder="98"
             [class.error]="isFieldInvalid('oxygenSaturation')"
@@ -213,12 +184,12 @@
     </div>
 
     <!-- Nurse Notes Section -->
-    <div class="form-section">
+    <div class="form-section" *ngIf="selectedPatient">
       <h3>📝 Nurse Notes (Optional)</h3>
-      
+
       <div class="form-group full-width">
         <label>Additional Notes</label>
-        <textarea 
+        <textarea
           formControlName="nurseNotes"
           placeholder="Any additional observations or notes"
           rows="3"
@@ -234,8 +205,9 @@
       <button type="button" class="btn-reset" (click)="resetForm()">
         Reset Form
       </button>
-      <button type="submit" class="btn-submit">
-        ➕ Add to Queue
+      <button type="submit" class="btn-submit" [disabled]="isSubmitting">
+        <span *ngIf="!isSubmitting">➕ Add to Queue</span>
+        <span *ngIf="isSubmitting">⏳ Adding...</span>
       </button>
     </div>
   </form>

@@ -3,6 +3,7 @@ import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
 import { Dashboard } from './features/dashboard/dashboard';
 import { AppointmentList } from './features/appointments/appointment-list/appointment-list';
+import { HealthRecord } from './features/health-record/health-record';
 import { QueueManagement } from './features/queue/queue-management/queue-management';
 import { AddPatient } from './features/queue/add-patient/add-patient';
 import { AdminPanel } from './features/admin/admin-panel/admin-panel';
@@ -51,7 +52,7 @@ export const routes: Routes = [
     path: 'admin/register-staff',
     component: Register,
     canActivate: [authGuard, roleGuard],
-    data: { roles: [UserRole.ADMIN] }
+    data: { roles: [UserRole.ADMIN] },
   },
 
   {
@@ -67,15 +68,19 @@ export const routes: Routes = [
   },
 
   {
+    path: 'health-record',
+    component: HealthRecord,
+    canActivate: [authGuard, roleGuard],
+    data: { roles: [UserRole.RECORD_OFFICER, UserRole.ADMIN] },
+  },
+
+  {
     path: 'analytics',
     component: AnalyticsDashboard,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
   },
-  
+
   { path: 'access-denied', component: AccessDenied },
 
   { path: '**', redirectTo: '/login' },
-
- 
-
 ];

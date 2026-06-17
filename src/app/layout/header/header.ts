@@ -13,7 +13,7 @@ import { Notifications } from '../../core/services/notifications';
   styleUrl: './header.css',
 })
 export class Header implements OnInit, OnDestroy {
-  hospitalName = 'Fountain University Teaching Hospital';
+  hospitalName = 'Fountain Teaching Hospital';
   currentUser: User | null = null;
   private userSubscription?: Subscription;
 
