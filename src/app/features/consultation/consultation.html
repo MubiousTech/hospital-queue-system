@@ -1,0 +1,143 @@
+<div class="consultation-container">
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="isLoading">
+    <p>Loading patient data...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="error-state" *ngIf="!isLoading && loadError">
+    <div class="error-icon">⚠️</div>
+    <h3>{{ loadError }}</h3>
+    <button class="btn-secondary" routerLink="/queue">← Back to Queue</button>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading && !loadError && queueEntry">
+
+    <div class="consultation-header">
+      <div>
+        <h2>🩺 Consultation</h2>
+        <p>{{ queueEntry.patient.firstName }} {{ queueEntry.patient.lastName }} — {{ queueEntry.patient.patientNumber }}</p>
+      </div>
+      <button class="btn-secondary" (click)="cancel()">← Back to Queue</button>
+    </div>
+
+    <div class="consultation-layout">
+
+      <!-- LEFT: Patient info + current visit + past history -->
+      <div class="consultation-sidebar">
+
+        <div class="info-card">
+          <h3>👤 Patient Information</h3>
+          <p><strong>Age:</strong> {{ queueEntry.patient.age }} years</p>
+          <p><strong>Gender:</strong> {{ queueEntry.patient.gender }}</p>
+          <p><strong>Phone:</strong> {{ queueEntry.patient.phoneNumber }}</p>
+          <p *ngIf="queueEntry.patient.bloodGroup"><strong>Blood Group:</strong> {{ queueEntry.patient.bloodGroup }}</p>
+          <p *ngIf="queueEntry.patient.genotype"><strong>Genotype:</strong> {{ queueEntry.patient.genotype }}</p>
+          <p *ngIf="queueEntry.patient.allergies" class="warning-text">⚠️ <strong>Allergies:</strong> {{ queueEntry.patient.allergies }}</p>
+          <p *ngIf="queueEntry.patient.chronicConditions"><strong>Chronic Conditions:</strong> {{ queueEntry.patient.chronicConditions }}</p>
+        </div>
+
+        <div class="info-card" *ngIf="currentRecord">
+          <h3>📋 Today's Triage</h3>
+          <p><strong>Condition:</strong> {{ currentRecord.medicalCondition }}</p>
+          <p><strong>Symptoms:</strong> {{ currentRecord.symptoms }}</p>
+          <p><strong>Priority:</strong> {{ currentRecord.priority }}</p>
+
+          <div class="vital-signs" *ngIf="currentRecord.vitalSigns">
+            <span class="vital">BP: {{ currentRecord.vitalSigns.bloodPressure }}</span>
+            <span class="vital">HR: {{ currentRecord.vitalSigns.heartRate }} bpm</span>
+            <span class="vital">Temp: {{ currentRecord.vitalSigns.temperature }}°C</span>
+            <span class="vital">O2: {{ currentRecord.vitalSigns.oxygenSaturation }}%</span>
+          </div>
+
+          <p *ngIf="currentRecord.nurseNotes" class="nurse-notes">
+            <strong>Nurse Notes:</strong> {{ currentRecord.nurseNotes }}
+          </p>
+        </div>
+
+        <div class="info-card history-card">
+          <h3>📁 Past Medical History</h3>
+
+          <div class="no-history" *ngIf="pastHistory.length === 0">
+            No previous visits on record.
+          </div>
+
+          <div class="history-entry" *ngFor="let record of pastHistory">
+            <div class="history-entry-date">📅 {{ record.visitDate | date:'mediumDate' }}</div>
+            <p *ngIf="record.diagnosis"><strong>Diagnosis:</strong> {{ record.diagnosis }}</p>
+            <p *ngIf="record.treatment"><strong>Treatment:</strong> {{ record.treatment }}</p>
+            <p *ngIf="record.medications"><strong>Medications:</strong> {{ record.medications }}</p>
+            <p *ngIf="record.assignedDoctor"><strong>Doctor:</strong> {{ record.assignedDoctor }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Consultation Form -->
+      <div class="consultation-form-area">
+        <form [formGroup]="consultForm" (ngSubmit)="onSubmit()" class="consult-form">
+          <h3>📝 Consultation Notes</h3>
+
+          <div class="form-group">
+            <label>Diagnosis <span class="required">*</span></label>
+            <textarea
+              formControlName="diagnosis"
+              rows="3"
+              placeholder="Enter diagnosis"
+              [class.error]="isFieldInvalid('diagnosis')"
+            ></textarea>
+            <span class="error-message" *ngIf="isFieldInvalid('diagnosis')">
+              Diagnosis is required (minimum 5 characters)
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label>Treatment Plan <span class="required">*</span></label>
+            <textarea
+              formControlName="treatment"
+              rows="3"
+              placeholder="Enter treatment plan"
+              [class.error]="isFieldInvalid('treatment')"
+            ></textarea>
+            <span class="error-message" *ngIf="isFieldInvalid('treatment')">
+              Treatment plan is required (minimum 5 characters)
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label>Medications / Prescription</label>
+            <textarea
+              formControlName="medications"
+              rows="3"
+              placeholder="e.g. Paracetamol 500mg, twice daily for 5 days"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Doctor's Notes</label>
+            <textarea
+              formControlName="doctorNotes"
+              rows="2"
+              placeholder="Additional observations"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Follow-up Date (Optional)</label>
+            <input type="date" formControlName="followUpDate" />
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
+            <button type="submit" class="btn-primary" [disabled]="isSaving">
+              <span *ngIf="!isSaving">✅ Complete Consultation</span>
+              <span *ngIf="isSaving">⏳ Saving...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>

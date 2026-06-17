@@ -104,6 +104,50 @@
     </div>
   </div>
 
+  <!-- Record Officer Dashboard -->
+  <div
+    *ngIf="currentUser && currentUser.role === userRole.RECORD_OFFICER"
+    class="dashboard-content"
+  >
+    <h2>Records Officer Dashboard</h2>
+
+    <div class="stats-grid" *ngIf="!isLoadingRecordStats">
+      <div class="stat-card">
+        <div class="stat-icon admin-icon">👥</div>
+        <div class="stat-info">
+          <h3>Total Registered Patients</h3>
+          <p class="stat-number">{{ totalPatients }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card success">
+        <div class="stat-icon">🆕</div>
+        <div class="stat-info">
+          <h3>New Patients Today</h3>
+          <p class="stat-number">{{ newToday }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">📁</div>
+        <div class="stat-info">
+          <h3>Total Medical Records</h3>
+          <p class="stat-number">{{ totalMedicalRecords }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <button class="btn btn-large btn-primary" (click)="navigateToHealthRecord()">
+        ➕ Register New Patient
+      </button>
+      <button class="btn btn-large btn-secondary" (click)="navigateToHealthRecord()">
+        🔍 Search Patient Records
+      </button>
+    </div>
+  </div>
+
   <!-- Nurse Dashboard -->
   <div *ngIf="currentUser && currentUser.role === userRole.NURSE" class="dashboard-content">
     <h2>Nurse Dashboard</h2>

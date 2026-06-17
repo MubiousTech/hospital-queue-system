@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -19,6 +19,7 @@ import {
 
 @Component({
   selector: 'app-health-record',
+  standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './health-record.html',
   styleUrl: './health-record.css',
@@ -62,6 +63,7 @@ export class HealthRecord implements OnInit {
     private fb: FormBuilder,
     private patientService: PatientServiceTs,
     private notifications: Notifications,
+    private cdr: ChangeDetectorRef,
   ) {
     this.registerForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -100,26 +102,10 @@ export class HealthRecord implements OnInit {
     });
   }
 
-ngOnInit(): void {
-  console.log('🟢 ngOnInit STARTED');
-
-  // TEMPORARY DIRECT TEST — with same query params as getAllPatients()
-  Promise.all([
-    import('../../core/services/appwrite.config'),
-    import('appwrite'),
-  ]).then(([{ databases, DB_ID, COLLECTIONS }, { Query }]) => {
-    console.log('🟢 About to call listDocuments WITH query params');
-    databases.listDocuments(DB_ID, COLLECTIONS.PATIENTS, [
-      Query.limit(200),
-      Query.orderDesc('$createdAt'),
-    ])
-      .then((res) => console.log('🟢 QUERY CALL SUCCESS:', res.total))
-      .catch((err) => console.log('🔴 QUERY CALL ERROR:', err));
-  });
-
-  this.loadOverviewStats();
-  this.loadAllPatients();
-}
+  ngOnInit(): void {
+    this.loadOverviewStats();
+    this.loadAllPatients();
+  }
 
   switchTab(tab: 'overview' | 'register' | 'search' | 'history'): void {
     this.activeTab = tab;
@@ -130,69 +116,37 @@ ngOnInit(): void {
   // ─────────────────────────────────────────────
   // OVERVIEW
   // ─────────────────────────────────────────────
+
   async loadOverviewStats(): Promise<void> {
-  console.log('STEP 0: function entered');
-  this.isLoadingStats = true;
+    this.isLoadingStats = true;
+    try {
+      const patients = await this.patientService.getAllPatients();
+      this.totalPatients = patients.length;
 
-  let patients: Patient[];
-  try {
-    console.log('STEP 1: calling getAllPatients');
-    patients = await this.patientService.getAllPatients();
-    console.log('STEP 2: getAllPatients returned', patients.length);
-  } catch (e) {
-    console.log('STEP 1/2 FAILED:', e);
-    this.isLoadingStats = false;
-    return;
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      this.newToday = patients.filter((p) => new Date(p.registrationDate) >= startOfToday).length;
+
+      const histories = await Promise.all(
+        patients.map((p) => this.patientService.getPatientHistory(p.id).catch(() => [])),
+      );
+
+      let returningCount = 0;
+      let totalRecords = 0;
+      for (const history of histories) {
+        totalRecords += history.length;
+        if (history.length > 1) returningCount++;
+      }
+
+      this.returningPatients = returningCount;
+      this.totalMedicalRecords = totalRecords;
+    } catch (error) {
+      this.notifications.error('Error', 'Failed to load dashboard statistics.');
+    } finally {
+      this.isLoadingStats = false;
+      this.cdr.detectChanges();
+    }
   }
-
-  console.log('STEP 3: setting totalPatients');
-  this.totalPatients = patients.length;
-
-  console.log('STEP 4: computing newToday');
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  this.newToday = patients.filter((p) => new Date(p.registrationDate) >= startOfToday).length;
-  console.log('STEP 5: newToday set to', this.newToday);
-
-  console.log('STEP 6: setting placeholder values for the rest, skipping history fetch entirely');
-  this.returningPatients = 0;
-  this.totalMedicalRecords = 0;
-
-  console.log('STEP 7: setting isLoadingStats false');
-  this.isLoadingStats = false;
-  console.log('STEP 8: function fully complete');
-}
- 
-  //   console.log('🔵 loadOverviewStats STARTED');
-  //   this.isLoadingStats = true;
-  //   try {
-  //     const patients = await this.patientService.getAllPatients();
-  //     this.totalPatients = patients.length;
-
-  //     const startOfToday = new Date();
-  //     startOfToday.setHours(0, 0, 0, 0);
-  //     this.newToday = patients.filter((p) => new Date(p.registrationDate) >= startOfToday).length;
-
-  //     // Fetch all histories in PARALLEL instead of one at a time
-  //     const histories = await Promise.all(
-  //       patients.map((p) => this.patientService.getPatientHistory(p.id).catch(() => [])),
-  //     );
-
-  //     let returningCount = 0;
-  //     let totalRecords = 0;
-  //     for (const history of histories) {
-  //       totalRecords += history.length;
-  //       if (history.length > 1) returningCount++;
-  //     }
-
-  //     this.returningPatients = returningCount;
-  //     this.totalMedicalRecords = totalRecords;
-  //   } catch (error) {
-  //     this.notifications.error('Error', 'Failed to load dashboard statistics.');
-  //   } finally {
-  //     this.isLoadingStats = false;
-  //   }
-  // }
 
   // ─────────────────────────────────────────────
   // REGISTER NEW PATIENT
@@ -292,6 +246,7 @@ ngOnInit(): void {
       this.notifications.error('Error', 'Failed to load patients.');
     } finally {
       this.isLoadingPatients = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -386,6 +341,7 @@ ngOnInit(): void {
       this.notifications.error('Error', 'Failed to load patient history.');
     } finally {
       this.isLoadingHistory = false;
+      this.cdr.detectChanges();
     }
   }
 

@@ -102,6 +102,14 @@ export class QueueManagement implements OnInit, OnDestroy {
     );
   }
 
+  getInProgressPatients(): QueueEntry[] {
+    return this.queueEntries.filter((entry) => entry.status === QueueStatus.IN_PROGRESS);
+  }
+
+  isDoctor(): boolean {
+  return this.currentUser?.role === 'doctor';
+}
+
   /**
    * Call next patient in queue
    */

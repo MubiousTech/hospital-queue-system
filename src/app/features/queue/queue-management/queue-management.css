@@ -355,3 +355,41 @@
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
 }
+
+.priority-header.in-progress {
+  background: #6f42c1;
+  color: white;
+}
+
+.patient-card.in-progress {
+  border-left: 4px solid #6f42c1;
+}
+
+.position-badge.in-progress {
+  background: #6f42c1;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.assigned-doctor {
+  color: #6f42c1;
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.btn-consult {
+  background: #6f42c1;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-consult:hover {
+  background: #5a32a3;
+  transform: translateY(-2px);
+}

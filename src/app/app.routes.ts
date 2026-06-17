@@ -5,6 +5,7 @@ import { Dashboard } from './features/dashboard/dashboard';
 import { AppointmentList } from './features/appointments/appointment-list/appointment-list';
 import { HealthRecord } from './features/health-record/health-record';
 import { QueueManagement } from './features/queue/queue-management/queue-management';
+import { Consultation } from './features/consultation/consultation';
 import { AddPatient } from './features/queue/add-patient/add-patient';
 import { AdminPanel } from './features/admin/admin-panel/admin-panel';
 import { authGuard } from './core/guards/auth-guard';
@@ -38,6 +39,13 @@ export const routes: Routes = [
     component: AddPatient,
     canActivate: [authGuard, roleGuard],
     data: { roles: [UserRole.NURSE, UserRole.ADMIN] },
+  },
+
+  {
+    path: 'consultation/:queueEntryId',
+    component: Consultation,
+    canActivate: [authGuard, roleGuard],
+    data: { roles: [UserRole.DOCTOR] },
   },
 
   {

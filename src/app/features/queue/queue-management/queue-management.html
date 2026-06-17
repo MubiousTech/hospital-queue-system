@@ -154,6 +154,54 @@
       </div>
     </div>
 
+    <!-- IN PROGRESS Patients (currently being consulted) -->
+    <div class="priority-section" *ngIf="getInProgressPatients().length > 0">
+      <div class="priority-header in-progress">
+        <h3>🩺 IN PROGRESS ({{ getInProgressPatients().length }} patients)</h3>
+      </div>
+
+      <div class="patient-list">
+        <div class="patient-card in-progress" *ngFor="let entry of getInProgressPatients()">
+          <div class="position-badge in-progress">👨‍⚕️</div>
+
+          <div class="patient-info">
+            <h4>{{ entry.patient.firstName }} {{ entry.patient.lastName }}</h4>
+            <p class="patient-details">
+              <span class="detail-item"
+                >👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span
+              >
+              <span class="detail-item">📱 {{ entry.patient.phoneNumber }}</span>
+            </p>
+            <p class="medical-info" *ngIf="getMedicalRecord(entry)">
+              <strong>Condition:</strong> {{ getMedicalRecord(entry)?.medicalCondition }}
+            </p>
+            <p class="assigned-doctor" *ngIf="entry.assignedDoctor">
+              🩺 Assigned to: {{ entry.assignedDoctor }}
+            </p>
+          </div>
+
+          <div class="patient-actions">
+            <button
+              class="btn-consult"
+              *ngIf="isDoctor()"
+              [routerLink]="['/consultation', entry.id]"
+            >
+              🩺 Start Consultation
+            </button>
+            <button
+              class="btn-remove"
+              (click)="
+                removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
+              "
+            >
+              🚫 Cancel Visit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <!-- REGULAR Patients -->
     <div class="priority-section" *ngIf="getPatientsByPriority(PatientPriority.REGULAR).length > 0">
       <div class="priority-header regular">
