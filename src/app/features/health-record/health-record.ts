@@ -130,38 +130,69 @@ ngOnInit(): void {
   // ─────────────────────────────────────────────
   // OVERVIEW
   // ─────────────────────────────────────────────
-
   async loadOverviewStats(): Promise<void> {
-    console.log('🔵 loadOverviewStats STARTED');
-    this.isLoadingStats = true;
-    try {
-      const patients = await this.patientService.getAllPatients();
-      this.totalPatients = patients.length;
+  console.log('STEP 0: function entered');
+  this.isLoadingStats = true;
 
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      this.newToday = patients.filter((p) => new Date(p.registrationDate) >= startOfToday).length;
-
-      // Fetch all histories in PARALLEL instead of one at a time
-      const histories = await Promise.all(
-        patients.map((p) => this.patientService.getPatientHistory(p.id).catch(() => [])),
-      );
-
-      let returningCount = 0;
-      let totalRecords = 0;
-      for (const history of histories) {
-        totalRecords += history.length;
-        if (history.length > 1) returningCount++;
-      }
-
-      this.returningPatients = returningCount;
-      this.totalMedicalRecords = totalRecords;
-    } catch (error) {
-      this.notifications.error('Error', 'Failed to load dashboard statistics.');
-    } finally {
-      this.isLoadingStats = false;
-    }
+  let patients: Patient[];
+  try {
+    console.log('STEP 1: calling getAllPatients');
+    patients = await this.patientService.getAllPatients();
+    console.log('STEP 2: getAllPatients returned', patients.length);
+  } catch (e) {
+    console.log('STEP 1/2 FAILED:', e);
+    this.isLoadingStats = false;
+    return;
   }
+
+  console.log('STEP 3: setting totalPatients');
+  this.totalPatients = patients.length;
+
+  console.log('STEP 4: computing newToday');
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  this.newToday = patients.filter((p) => new Date(p.registrationDate) >= startOfToday).length;
+  console.log('STEP 5: newToday set to', this.newToday);
+
+  console.log('STEP 6: setting placeholder values for the rest, skipping history fetch entirely');
+  this.returningPatients = 0;
+  this.totalMedicalRecords = 0;
+
+  console.log('STEP 7: setting isLoadingStats false');
+  this.isLoadingStats = false;
+  console.log('STEP 8: function fully complete');
+}
+ 
+  //   console.log('🔵 loadOverviewStats STARTED');
+  //   this.isLoadingStats = true;
+  //   try {
+  //     const patients = await this.patientService.getAllPatients();
+  //     this.totalPatients = patients.length;
+
+  //     const startOfToday = new Date();
+  //     startOfToday.setHours(0, 0, 0, 0);
+  //     this.newToday = patients.filter((p) => new Date(p.registrationDate) >= startOfToday).length;
+
+  //     // Fetch all histories in PARALLEL instead of one at a time
+  //     const histories = await Promise.all(
+  //       patients.map((p) => this.patientService.getPatientHistory(p.id).catch(() => [])),
+  //     );
+
+  //     let returningCount = 0;
+  //     let totalRecords = 0;
+  //     for (const history of histories) {
+  //       totalRecords += history.length;
+  //       if (history.length > 1) returningCount++;
+  //     }
+
+  //     this.returningPatients = returningCount;
+  //     this.totalMedicalRecords = totalRecords;
+  //   } catch (error) {
+  //     this.notifications.error('Error', 'Failed to load dashboard statistics.');
+  //   } finally {
+  //     this.isLoadingStats = false;
+  //   }
+  // }
 
   // ─────────────────────────────────────────────
   // REGISTER NEW PATIENT
