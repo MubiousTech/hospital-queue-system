@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -45,6 +45,7 @@ export class AdminPanel implements OnInit, OnDestroy {
   constructor(
     private queueService: Queue,
     private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -92,6 +93,7 @@ export class AdminPanel implements OnInit, OnDestroy {
     } finally {
       this.isLoadingUsers = false;
     }
+    this.cdr.detectChanges();
   }
 
   switchTab(tab: 'overview' | 'users' | 'queue' | 'settings'): void {
@@ -106,6 +108,7 @@ export class AdminPanel implements OnInit, OnDestroy {
       const matchesRole = this.selectedRole === 'all' || user.role === this.selectedRole;
       return matchesSearch && matchesRole;
     });
+    this.cdr.detectChanges();
   }
 
   toggleUserStatus(userId: string): void {
