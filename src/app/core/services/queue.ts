@@ -16,9 +16,8 @@ import { PatientServiceTs } from './patient.service.ts';
 @Injectable({
   providedIn: 'root',
 })
-
 export class Queue {
-   private readonly AVERAGE_SERVICE_TIME = 15;
+  private readonly AVERAGE_SERVICE_TIME = 15;
 
   private queueSubject: BehaviorSubject<QueueEntry[]>;
   public queue$: Observable<QueueEntry[]>;
@@ -35,17 +34,15 @@ export class Queue {
 
   async loadQueue(): Promise<void> {
     try {
-      const entriesResult = await databases.listDocuments(
-        DB_ID,
-        COLLECTIONS.QUEUE_ENTRIES,
-        [Query.limit(100)]
-      );
+      const entriesResult = await databases.listDocuments(DB_ID, COLLECTIONS.QUEUE_ENTRIES, [
+        Query.limit(100),
+      ]);
 
       const activeEntries = entriesResult.documents.filter(
         (doc) =>
           doc['status'] === QueueStatus.WAITING ||
           doc['status'] === QueueStatus.IN_PROGRESS ||
-          doc['status'] === QueueStatus.COMPLETED
+          doc['status'] === QueueStatus.COMPLETED,
       );
 
       if (activeEntries.length === 0) {
@@ -54,7 +51,7 @@ export class Queue {
       }
 
       const entries: QueueEntry[] = await Promise.all(
-        activeEntries.map((doc) => this.documentToQueueEntry(doc))
+        activeEntries.map((doc) => this.documentToQueueEntry(doc)),
       );
 
       this.sortAndUpdateLocal(entries);
@@ -189,13 +186,18 @@ export class Queue {
 
     const nextPatient = waitingPatients[0];
 
+    // Capture actual wait time NOW, before status changes
+    const actualWaitMinutes = Math.floor(
+      (new Date().getTime() - new Date(nextPatient.arrivalTime).getTime()) / 60000,
+    );
+
     try {
       await databases.updateDocument(DB_ID, COLLECTIONS.QUEUE_ENTRIES, nextPatient.id, {
         status: QueueStatus.IN_PROGRESS,
         assignedDoctor: doctorName,
+        estimatedWaitTime: actualWaitMinutes, // freeze the real wait time here
       });
 
-      // Also tag the medical record with the assigned doctor
       if (nextPatient.medicalRecordId) {
         await this.patientService.updateMedicalRecord(nextPatient.medicalRecordId, {
           assignedDoctor: doctorName,
@@ -204,6 +206,7 @@ export class Queue {
 
       nextPatient.status = QueueStatus.IN_PROGRESS;
       nextPatient.assignedDoctor = doctorName;
+      nextPatient.estimatedWaitTime = actualWaitMinutes;
 
       const currentQueue = this.getCurrentQueue();
       this.sortAndUpdateLocal(currentQueue);
@@ -359,16 +362,27 @@ export class Queue {
 
     const mockData = [
       {
-        firstName: 'Adewale', lastName: 'Okafor', age: 45, gender: 'Male' as const,
+        firstName: 'Adewale',
+        lastName: 'Okafor',
+        age: 45,
+        gender: 'Male' as const,
         phoneNumber: '08012345678',
         medicalCondition: MedicalConditions.CARDIAC_ARREST,
         symptoms: 'Severe chest pain, shortness of breath',
         priority: PatientPriority.CRITICAL,
         arrivalOffset: 30,
-        vitalSigns: { bloodPressure: '160/100', heartRate: 110, temperature: 37.2, oxygenSaturation: 88 },
+        vitalSigns: {
+          bloodPressure: '160/100',
+          heartRate: 110,
+          temperature: 37.2,
+          oxygenSaturation: 88,
+        },
       },
       {
-        firstName: 'Chioma', lastName: 'Nwosu', age: 28, gender: 'Female' as const,
+        firstName: 'Chioma',
+        lastName: 'Nwosu',
+        age: 28,
+        gender: 'Female' as const,
         phoneNumber: '08087654321',
         medicalCondition: MedicalConditions.ROUTINE_CHECKUP,
         symptoms: 'Annual health checkup',
@@ -377,22 +391,38 @@ export class Queue {
         vitalSigns: undefined,
       },
       {
-        firstName: 'Ibrahim', lastName: 'Mohammed', age: 62, gender: 'Male' as const,
+        firstName: 'Ibrahim',
+        lastName: 'Mohammed',
+        age: 62,
+        gender: 'Male' as const,
         phoneNumber: '08098765432',
         medicalCondition: MedicalConditions.FEVER,
         symptoms: 'High fever for 2 days, body aches',
         priority: PatientPriority.REGULAR,
         arrivalOffset: 20,
-        vitalSigns: { bloodPressure: '130/85', heartRate: 95, temperature: 39.5, oxygenSaturation: 96 },
+        vitalSigns: {
+          bloodPressure: '130/85',
+          heartRate: 95,
+          temperature: 39.5,
+          oxygenSaturation: 96,
+        },
       },
       {
-        firstName: 'Blessing', lastName: 'Eze', age: 35, gender: 'Female' as const,
+        firstName: 'Blessing',
+        lastName: 'Eze',
+        age: 35,
+        gender: 'Female' as const,
         phoneNumber: '08076543210',
         medicalCondition: MedicalConditions.SEVERE_TRAUMA,
         symptoms: 'Car accident - multiple injuries',
         priority: PatientPriority.CRITICAL,
         arrivalOffset: 10,
-        vitalSigns: { bloodPressure: '90/60', heartRate: 120, temperature: 36.8, oxygenSaturation: 90 },
+        vitalSigns: {
+          bloodPressure: '90/60',
+          heartRate: 120,
+          temperature: 36.8,
+          oxygenSaturation: 90,
+        },
       },
     ];
 
