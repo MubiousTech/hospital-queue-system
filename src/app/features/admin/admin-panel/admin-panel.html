@@ -58,6 +58,14 @@
       </div>
 
       <div class="stat-card">
+        <div class="stat-icon">🗂️</div>
+        <div class="stat-info">
+          <h3>Record Officers</h3>
+          <p class="stat-number">{{ getRecordOfficerCount() }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
         <div class="stat-icon">📊</div>
         <div class="stat-info">
           <h3>Queue Status</h3>
@@ -109,6 +117,7 @@
         <option value="ADMIN">Admin</option>
         <option value="DOCTOR">Doctor</option>
         <option value="NURSE">Nurse</option>
+        <option value="RECORD-OFFICER">Record Officer</option>
         <option value="PATIENT">Patient</option>
       </select>
     </div>

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule, NgIf } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -15,6 +15,7 @@ import { Notifications } from '../../core/services/notifications';
 export class Header implements OnInit, OnDestroy {
   hospitalName = 'Fountain Teaching Hospital';
   currentUser: User | null = null;
+  menuOpen = false;
   private userSubscription?: Subscription;
 
   constructor(
@@ -35,6 +36,36 @@ export class Header implements OnInit, OnDestroy {
     this.userSubscription?.unsubscribe();
   }
 
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  handleDocumentClick(event: MouseEvent): void {
+    if (!this.menuOpen) {
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    if (!target.closest('.hospital-header')) {
+      this.closeMenu();
+    }
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscape(event: Event): void {
+    if (!this.menuOpen || !(event instanceof KeyboardEvent)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.closeMenu();
+  }
+
   getGreeting(): string {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -53,5 +84,10 @@ export class Header implements OnInit, OnDestroy {
     this.auth.logout();
     this.notifications.info('Logged Out', 'You have been logged out successfully.');
     this.router.navigate(['/login']);
+  }
+
+  onLogoutAndClose(): void {
+    this.closeMenu();
+    this.onLogout();
   }
 }

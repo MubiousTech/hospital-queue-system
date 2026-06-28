@@ -45,7 +45,7 @@ export class AdminPanel implements OnInit, OnDestroy {
   constructor(
     private queueService: Queue,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -136,7 +136,7 @@ export class AdminPanel implements OnInit, OnDestroy {
   }
 
   addNewUser(): void {
-    alert('Add New User feature coming soon!');
+    this.router.navigate(['/admin/register-staff']);
   }
 
   exportData(): void {
@@ -183,6 +183,10 @@ export class AdminPanel implements OnInit, OnDestroy {
 
   getNurseCount(): number {
     return this.systemUsers.filter((u) => u.role === 'NURSE').length;
+  }
+
+  getRecordOfficerCount(): number {
+    return this.systemUsers.filter((u) => u.role === 'RECORD-OFFICER').length;
   }
 
   getPatientCount(): number {

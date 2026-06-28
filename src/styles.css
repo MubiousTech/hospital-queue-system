@@ -1,3 +1,5 @@
+@import './responsive.css';
+
 /* You can add global styles to this file, and also import other style files */
 /* Global Styles */
 * {
@@ -9,6 +11,23 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f5f6fa;
+  color: #2c3e50;
+}
+
+img,
+svg,
+iframe,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  min-width: 0;
+  font: inherit;
 }
 
 /* Shared page styles */

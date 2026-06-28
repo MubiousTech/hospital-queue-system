@@ -14,9 +14,11 @@ import { RouterLink } from '@angular/router';
 import { UserRole } from '../../../core/models/user.model';
 import { account, databases, DB_ID, COLLECTIONS } from '../../../core/services/appwrite.config';
 import { ID } from 'appwrite';
+import { Notifications } from '../../../core/services/notifications';
 
 @Component({
   selector: 'app-register',
+  standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './register.html',
   styleUrl: './register.css',
@@ -24,13 +26,15 @@ import { ID } from 'appwrite';
 export class Register implements OnInit {
   registerForm: FormGroup;
   submitted = false;
+  isSubmitting = false;
   mode: 'patient' | 'staff' = 'patient';
-  userRoles = [UserRole.DOCTOR, UserRole.NURSE];
+  userRoles = [UserRole.DOCTOR, UserRole.NURSE, UserRole.RECORD_OFFICER];
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
+    private notifications: Notifications,
   ) {
     this.registerForm = this.fb.group(
       {
@@ -39,16 +43,13 @@ export class Register implements OnInit {
         phone: ['', Validators.required],
         password: ['', [Validators.required, Validators.minLength(6)]],
         confirmPassword: ['', Validators.required],
-        // staff-only
         role: [''],
-        staffId: [''],
       },
       { validators: this.passwordsMatchValidator() },
     );
   }
 
   ngOnInit(): void {
-    // Determine mode based on route path
     const url = this.router.url;
     if (url.includes('/admin/register-staff')) {
       this.setStaffMode();
@@ -56,7 +57,6 @@ export class Register implements OnInit {
       this.setPatientMode();
     }
 
-    // If route parameters or query params provide mode, prefer them
     const routePath = this.route.snapshot.routeConfig?.path;
     if (routePath === 'register') this.setPatientMode();
     if (routePath === 'admin/register-staff') this.setStaffMode();
@@ -64,23 +64,17 @@ export class Register implements OnInit {
 
   private setPatientMode(): void {
     this.mode = 'patient';
-    // ensure role is patient and hide staff fields
     this.registerForm.get('role')?.setValue(UserRole.PATIENT);
     this.registerForm.get('role')?.disable();
-    this.registerForm.get('staffId')?.clearValidators();
-    this.registerForm.get('staffId')?.updateValueAndValidity();
   }
 
   private setStaffMode(): void {
     this.mode = 'staff';
     this.registerForm.get('role')?.setValidators(Validators.required);
-    this.registerForm.get('staffId')?.setValidators(Validators.required);
     this.registerForm.get('role')?.enable();
     this.registerForm.get('role')?.updateValueAndValidity();
-    this.registerForm.get('staffId')?.updateValueAndValidity();
   }
 
-  // Validator to ensure password and confirmPassword match
   private passwordsMatchValidator(): ValidatorFn {
     return (group: AbstractControl): ValidationErrors | null => {
       const pw = group.get('password')?.value;
@@ -123,14 +117,23 @@ export class Register implements OnInit {
 
     const email = this.registerForm.get('email')?.value;
     const password = this.registerForm.get('password')?.value;
-    const phone = this.registerForm.get('phone')?.value;
     const role = this.mode === 'patient' ? UserRole.PATIENT : this.registerForm.get('role')?.value;
 
-    try {
-      // Step 1: Create Appwrite auth account
-      await account.create(ID.unique(), email, password, `${firstName} ${lastName}`);
+    this.isSubmitting = true;
 
-      // Step 2: Save user profile to users collection
+    try {
+      // Step 1: Create auth account (this auto-logs in as new user)
+      const newAccount = await account.create(
+        ID.unique(),
+        email,
+        password,
+        `${firstName} ${lastName}`,
+      );
+
+      // Step 2: Create session explicitly to ensure we can write to DB
+      await account.createEmailPasswordSession(email, password);
+
+      // Step 3: Save user profile
       await databases.createDocument(DB_ID, COLLECTIONS.USERS, ID.unique(), {
         email,
         firstName,
@@ -138,19 +141,34 @@ export class Register implements OnInit {
         role,
       });
 
-      alert(`✅ Registration successful! You can now log in.`);
+      // Step 4: Delete session synchronously
+      await account.deleteSession('current');
 
+      // Step 5: Clear any Angular auth state so guards don't redirect
       if (this.mode === 'patient') {
-        this.router.navigate(['/login']);
+        this.notifications.success(
+          'Registration Successful',
+          'You can now log in with your new account.',
+        );
       } else {
-        this.router.navigate(['/admin']);
+        this.notifications.success(
+          'Staff Account Created',
+          'Account created successfully. Please log back in as Admin to continue.',
+        );
       }
+
+      // Step 6: Hard redirect with a tiny delay to let the session deletion propagate
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 300);
     } catch (error: any) {
       console.error('Registration error:', error);
       const message = error?.message?.includes('already exists')
-        ? 'An account with this email already exists.'
+        ? 'An account with this email already exists. If this is from a previous failed attempt, please contact an administrator.'
         : error?.message || 'Registration failed. Please try again.';
-      alert(`❌ ${message}`);
+      this.notifications.error('Registration Failed', message);
+    } finally {
+      this.isSubmitting = false;
     }
   }
 }

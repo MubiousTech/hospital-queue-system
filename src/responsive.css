@@ -1,0 +1,85 @@
+:root {
+  font-size: 16px;
+}
+
+img,
+svg,
+iframe,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  min-width: 0;
+  font: inherit;
+}
+
+body {
+  min-width: 320px;
+}
+
+/* Prevent overflow from long content */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* Improve default responsive layout behavior */
+.main-content {
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .header-container,
+  .footer-container,
+  .page-container,
+  .appointment-container,
+  .record-container,
+  .dashboard-container,
+  .analytics-container,
+  .admin-container,
+  .consultation-container,
+  .appointments-container,
+  .add-patient-container,
+  .queue-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-container,
+  .footer-container,
+  .page-container,
+  .appointment-container,
+  .record-container,
+  .dashboard-container,
+  .analytics-container,
+  .admin-container,
+  .consultation-container,
+  .appointments-container,
+  .add-patient-container,
+  .queue-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .btn,
+  .logout-btn,
+  .menu-toggle,
+  .nav-link,
+  .btn-primary,
+  .btn-secondary,
+  .btn-action,
+  .btn-row-action,
+  .btn-clear,
+  .btn-cancel,
+  .btn-submit,
+  .btn-reset {
+    min-width: 0;
+  }
+}

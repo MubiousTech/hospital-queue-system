@@ -5,21 +5,66 @@
       <h1>{{ hospitalName }}</h1>
     </div>
 
-    <nav class="nav-menu" *ngIf="currentUser">
-      <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">Dashboard</a>
-      <a routerLink="/appointments" routerLinkActive="active" class="nav-link">Appointments </a>
-      <a routerLink="/health-record" routerLinkActive="active" class="nav-link">Records</a>
-      <a routerLink="/queue" routerLinkActive="active" class="nav-link">Queue</a>
-      <a routerLink="/admin" routerLinkActive="active" class="nav-link" *ngIf="currentUser.role === `admin`">Admin</a>
-    </nav>
+    <div class="header-actions" *ngIf="currentUser">
+      <button
+        class="menu-toggle"
+        type="button"
+        [attr.aria-expanded]="menuOpen"
+        aria-controls="primary-navigation"
+        aria-label="Toggle navigation"
+        (click)="toggleMenu()"
+      >
+        <span class="hamburger-icon" [class.open]="menuOpen">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
 
-    <div class="user-section" *ngIf="currentUser">
-      <span class="user-greeting">{{ getGreeting() }}, {{ getUserName() }}</span>
-      <button class="logout-btn" (click)="onLogout()">Logout</button>
-    </div>
-
-    <div class="user-section" *ngIf="!currentUser">
-      <button class="logout-btn" routerLink="/login">Login</button>
+      <nav
+        id="primary-navigation"
+        class="nav-menu"
+        [class.open]="menuOpen"
+        role="navigation"
+        aria-label="Primary navigation"
+      >
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" (click)="closeMenu()"
+          >Dashboard</a
+        >
+        <a
+          routerLink="/appointments"
+          routerLinkActive="active"
+          class="nav-link"
+          (click)="closeMenu()"
+          >Appointments</a
+        >
+        <a
+          routerLink="/health-record"
+          routerLinkActive="active"
+          class="nav-link"
+          (click)="closeMenu()"
+          >Records</a
+        >
+        <a routerLink="/queue" routerLinkActive="active" class="nav-link" (click)="closeMenu()"
+          >Queue</a
+        >
+        <a
+          routerLink="/admin"
+          routerLinkActive="active"
+          class="nav-link"
+          *ngIf="currentUser.role === `admin`"
+          (click)="closeMenu()"
+          >Admin</a
+        >
+        <button
+          type="button"
+          class="nav-logout-btn"
+          (click)="onLogoutAndClose()"
+          aria-label="Logout"
+        >
+          Logout
+        </button>
+      </nav>
     </div>
   </div>
 </header>

@@ -93,22 +93,15 @@
             getErrorMessage('role')
           }}</span>
         </div>
-
-        <div class="form-group">
-          <label>Staff ID</label>
-          <input type="text" formControlName="staffId" [class.error]="isFieldInvalid('staffId')" />
-          <span class="error-message" *ngIf="isFieldInvalid('staffId')">{{
-            getErrorMessage('staffId')
-          }}</span>
-        </div>
       </div>
 
       <div class="alert-error" *ngIf="registerForm.invalid && submitted">
         Please correct the errors above before submitting.
       </div>
 
-      <button type="submit" class="login-btn" [disabled]="registerForm.invalid && submitted">
-        Register
+      <button type="submit" class="login-btn" [disabled]="isSubmitting">
+        <span *ngIf="!isSubmitting">Register</span>
+        <span *ngIf="isSubmitting">⏳ Registering...</span>
       </button>
       <p class="register-link">Already have an account? <a routerLink="/login">Login here</a></p>
     </form>
