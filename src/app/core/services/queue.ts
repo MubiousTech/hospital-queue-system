@@ -50,9 +50,9 @@ export class Queue {
         return this.loadQueue();
       }
 
-      const entries: QueueEntry[] = await Promise.all(
-        activeEntries.map((doc) => this.documentToQueueEntry(doc)),
-      );
+      const entries: QueueEntry[] = (
+        await Promise.all(activeEntries.map((doc) => this.documentToQueueEntry(doc)))
+      ).filter((entry): entry is QueueEntry => entry !== null);
 
       this.sortAndUpdateLocal(entries);
       await this.cleanupStalePatients();
@@ -333,8 +333,16 @@ export class Queue {
   // CONVERT APPWRITE DOCUMENT TO QUEUE ENTRY
   // ─────────────────────────────────────────────
 
-  private async documentToQueueEntry(doc: any): Promise<QueueEntry> {
-    const patient = await this.patientService.getPatientById(doc['patientId']);
+  private async documentToQueueEntry(doc: any): Promise<QueueEntry | null> {
+    let patient;
+    try {
+      patient = await this.patientService.getPatientById(doc['patientId']);
+    } catch (error) {
+      console.warn(
+        `⚠️ Queue entry ${doc.$id} references missing patient ${doc['patientId']} — skipping.`,
+      );
+      return null;
+    }
 
     return {
       id: doc.$id,

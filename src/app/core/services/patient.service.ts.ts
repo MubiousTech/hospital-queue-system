@@ -155,8 +155,6 @@ export class PatientServiceTs {
   async createMedicalRecord(
     data: Omit<MedicalRecord, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<MedicalRecord> {
-    const now = new Date().toISOString();
-
     const doc = await databases.createDocument(DB_ID, COLLECTIONS.MEDICAL_RECORDS, ID.unique(), {
       patientId: data.patientId,
       visitDate: new Date(data.visitDate).toISOString(),
@@ -174,8 +172,6 @@ export class PatientServiceTs {
       doctorNotes: data.doctorNotes || null,
       followUpDate: data.followUpDate ? new Date(data.followUpDate).toISOString() : null,
       assignedDoctor: data.assignedDoctor || null,
-      createdAt: now,
-      updatedAt: now,
     });
 
     return this.documentToMedicalRecord(doc);
@@ -186,7 +182,7 @@ export class PatientServiceTs {
   // ─────────────────────────────────────────────
 
   async updateMedicalRecord(id: string, data: Partial<MedicalRecord>): Promise<MedicalRecord> {
-    const updateData: any = { updatedAt: new Date().toISOString() };
+    const updateData: any = {};
 
     if (data.diagnosis !== undefined) updateData.diagnosis = data.diagnosis || null;
     if (data.treatment !== undefined) updateData.treatment = data.treatment || null;
