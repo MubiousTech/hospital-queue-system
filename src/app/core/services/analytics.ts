@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { ChangeDetectorRef } from '@angular/core';
 import { Queue } from './queue';
 import { AppointmentService } from './appointment-service';
 import {

@@ -13,9 +13,9 @@ export const databases = new Databases(client);
 export const DB_ID = '6a2a8d910034a89d0082';
 
 export const COLLECTIONS = {
-  PATIENTS: 'patients',
-  QUEUE_ENTRIES: 'queue_entries',
-  APPOINTMENTS: 'appointments',
-  USERS: 'users',
-   MEDICAL_RECORDS: 'medical_records',
+  PATIENTS: 'patients', // unchanged
+  QUEUE_ENTRIES: 'queue_entries',   // update this
+  APPOINTMENTS: 'appointments',    // unchanged
+  USERS: 'users',                  // unchanged
+  MEDICAL_RECORDS: 'medical_records', // update this
 };

@@ -123,17 +123,9 @@ export class Register implements OnInit {
 
     try {
       // Step 1: Create auth account (this auto-logs in as new user)
-      const newAccount = await account.create(
-        ID.unique(),
-        email,
-        password,
-        `${firstName} ${lastName}`,
-      );
+      await account.create(ID.unique(), email, password, `${firstName} ${lastName}`);
 
-      // Step 2: Create session explicitly to ensure we can write to DB
-      await account.createEmailPasswordSession(email, password);
-
-      // Step 3: Save user profile
+      // Step 2: Save user profile
       await databases.createDocument(DB_ID, COLLECTIONS.USERS, ID.unique(), {
         email,
         firstName,
@@ -141,10 +133,10 @@ export class Register implements OnInit {
         role,
       });
 
-      // Step 4: Delete session synchronously
+      // Step 3: Delete session synchronously
       await account.deleteSession('current');
 
-      // Step 5: Clear any Angular auth state so guards don't redirect
+      // Step 4: Clear any Angular auth state so guards don't redirect
       if (this.mode === 'patient') {
         this.notifications.success(
           'Registration Successful',
@@ -157,7 +149,7 @@ export class Register implements OnInit {
         );
       }
 
-      // Step 6: Hard redirect with a tiny delay to let the session deletion propagate
+      // Step 5: Hard redirect with a tiny delay to let the session deletion propagate
       setTimeout(() => {
         window.location.href = '/login';
       }, 300);
