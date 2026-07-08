@@ -34,7 +34,7 @@ export class DoctorScheduleService {
   // Hardcoded doctor schedules
   readonly DOCTORS: DoctorSchedule[] = [
     {
-      name: 'Dr. Sarah Johnson',
+      name: 'Dr. Adebayo Adetunji',
       specialization: 'General Practitioner',
       workingDays: [1, 2, 3, 4, 5], // Mon–Fri
       startHour: 9,
