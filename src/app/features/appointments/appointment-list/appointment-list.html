@@ -10,12 +10,12 @@
 </div><div class="appointments-container">
   <div class="appointments-header">
     <div class="header-left">
-      <h1>📅 My Appointments</h1>
+      <h1>My Appointments</h1>
       <p>Manage and view all your scheduled appointments</p>
     </div>
     <div class="header-right">
       <button class="btn btn-primary" routerLink="/appointments/book">
-        ➕ Book New Appointment
+        Book New Appointment
       </button>
     </div>
   </div>
@@ -23,7 +23,7 @@
   <!-- Statistics Cards -->
   <div class="stats-cards">
     <div class="stat-card">
-      <div class="stat-icon">📊</div>
+      <div class="stat-icon"></div>
       <div class="stat-info">
         <h3>Total Appointments</h3>
         <p class="stat-number">{{ appointments.length }}</p>
@@ -31,7 +31,7 @@
     </div>
 
     <div class="stat-card upcoming">
-      <div class="stat-icon">⏰</div>
+      <div class="stat-icon"></div>
       <div class="stat-info">
         <h3>Upcoming</h3>
         <p class="stat-number">{{ getUpcomingCount() }}</p>
@@ -39,7 +39,7 @@
     </div>
 
     <div class="stat-card today">
-      <div class="stat-icon">📆</div>
+      <div class="stat-icon"></div>
       <div class="stat-info">
         <h3>Today</h3>
         <p class="stat-number">{{ getTodayCount() }}</p>
@@ -53,7 +53,7 @@
       <input 
         type="text" 
         class="search-input" 
-        placeholder="🔍 Search by patient, doctor, or reason..."
+        placeholder=" Search by patient, doctor, or reason..."
         [(ngModel)]="searchTerm"
         (input)="applyFilters()"
       />
@@ -117,47 +117,47 @@
         <div class="appointment-info">
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">👤 Patient:</span>
+              <span class="info-label">Patient:</span>
               <span class="info-value">{{ appointment.patientName }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">🩺 Doctor:</span>
+              <span class="info-label">Doctor:</span>
               <span class="info-value">{{ appointment.doctorName }}</span>
             </div>
           </div>
 
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">📅 Date:</span>
+              <span class="info-label">Date:</span>
               <span class="info-value">{{ appointment.appointmentDate | date:'fullDate' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">⏰ Time:</span>
+              <span class="info-label">Time:</span>
               <span class="info-value">{{ appointment.appointmentTime }}</span>
             </div>
           </div>
 
           <div class="info-row">
             <div class="info-item full-width">
-              <span class="info-label">📝 Reason:</span>
+              <span class="info-label">Reason:</span>
               <span class="info-value">{{ appointment.reason }}</span>
             </div>
           </div>
 
           <div *ngIf="appointment.notes" class="info-row">
             <div class="info-item full-width">
-              <span class="info-label">💬 Notes:</span>
+              <span class="info-label">Notes:</span>
               <span class="info-value notes">{{ appointment.notes }}</span>
             </div>
           </div>
 
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">📞 Contact:</span>
+              <span class="info-label">Contact:</span>
               <span class="info-value">{{ appointment.patientPhone }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">📧 Email:</span>
+              <span class="info-label">Email:</span>
               <span class="info-value">{{ appointment.patientEmail }}</span>
             </div>
           </div>
@@ -169,20 +169,20 @@
           *ngIf="appointment.status === AppointmentStatus.SCHEDULED && isUpcoming(appointment)"
           class="btn-action btn-confirm"
           (click)="confirmAppointment(appointment.id)">
-          ✅ Confirm
+          Confirm
         </button>
 
         <button 
           *ngIf="(appointment.status === AppointmentStatus.SCHEDULED || appointment.status === AppointmentStatus.CONFIRMED) && isUpcoming(appointment)"
           class="btn-action btn-cancel"
           (click)="cancelAppointment(appointment.id)">
-          ❌ Cancel
+          Cancel
         </button>
 
         <button 
           class="btn-action btn-delete"
           (click)="deleteAppointment(appointment.id)">
-          🗑️ Delete
+          Delete
         </button>
       </div>
     </div>

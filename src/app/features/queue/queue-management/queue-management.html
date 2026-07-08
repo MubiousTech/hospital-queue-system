@@ -1,17 +1,17 @@
 <div class="queue-container">
   <!-- Header Section -->
   <div class="queue-header">
-    <h2>⏱️ Queue Management Dashboard</h2>
+    <h2>Queue Management Dashboard</h2>
     <div class="header-actions">
-      <button class="btn-add" routerLink="/queue/add-patient">➕ Add New Patient</button>
-      <button class="btn-primary" (click)="callNextPatient()">🔔 Call Next Patient</button>
+      <button class="btn-add" routerLink="/queue/add-patient">Add New Patient</button>
+      <button class="btn-primary" (click)="callNextPatient()">Call Next Patient</button>
     </div>
   </div>
 
   <!-- Statistics Section -->
   <div class="stats-grid" *ngIf="queueStats">
     <div class="stat-card total">
-      <div class="stat-icon">👥</div>
+      <div class="stat-icon"></div>
       <div class="stat-content">
         <h3>{{ queueStats.totalPatients }}</h3>
         <p>Patients Waiting</p>
@@ -19,7 +19,7 @@
     </div>
 
     <div class="stat-card critical">
-      <div class="stat-icon">🔴</div>
+      <div class="stat-icon"></div>
       <div class="stat-content">
         <h3>{{ queueStats.criticalCount }}</h3>
         <p>Critical Priority</p>
@@ -27,7 +27,7 @@
     </div>
 
     <div class="stat-card regular">
-      <div class="stat-icon">🔵</div>
+      <div class="stat-icon"></div>
       <div class="stat-content">
         <h3>{{ queueStats.regularCount }}</h3>
         <p>Regular Priority</p>
@@ -35,7 +35,7 @@
     </div>
 
     <div class="stat-card delayed">
-      <div class="stat-icon">🟡</div>
+      <div class="stat-icon"></div>
       <div class="stat-content">
         <h3>{{ queueStats.delayedCount }}</h3>
         <p>Delayed Priority</p>
@@ -43,7 +43,7 @@
     </div>
 
     <div class="stat-card average">
-      <div class="stat-icon">⏰</div>
+      <div class="stat-icon"></div>
       <div class="stat-content">
         <h3>{{ formatWaitTime(queueStats.averageWaitTime) }}</h3>
         <p>Average Wait Time</p>
@@ -51,7 +51,7 @@
     </div>
 
     <div class="stat-card served">
-      <div class="stat-icon">✅</div>
+      <div class="stat-icon"></div>
       <div class="stat-content">
         <h3>{{ queueStats.patientsServedToday }}</h3>
         <p>Served Today</p>
@@ -68,7 +68,7 @@
     >
       <div class="priority-header critical">
         <h3>
-          🔴 CRITICAL PRIORITY ({{ getPatientsByPriority(PatientPriority.CRITICAL).length }}
+          CRITICAL PRIORITY ({{ getPatientsByPriority(PatientPriority.CRITICAL).length }}
           patients)
         </h3>
       </div>
@@ -88,7 +88,7 @@
               <span class="detail-item"
                 >👤 {{ entry.patient.age }} years, {{ entry.patient.gender }}</span
               >
-              <span class="detail-item">📱 {{ entry.patient.phoneNumber }}</span>
+              <span class="detail-item">{{ entry.patient.phoneNumber }}</span>
             </p>
             <p class="medical-info" *ngIf="getMedicalRecord(entry)">
               <strong>Condition:</strong> {{ getMedicalRecord(entry)?.medicalCondition }}
@@ -131,7 +131,7 @@
           <!-- Actions -->
           <div class="patient-actions">
             <button class="btn-call" (click)="callNextPatient()" *ngIf="entry.queuePosition === 1">
-              🔔 Call Now
+              Call Now
             </button>
             <button
               class="btn-complete"
@@ -139,7 +139,7 @@
                 completePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
               "
             >
-              ✅ Complete
+              Complete
             </button>
             <button
               class="btn-remove"
@@ -147,7 +147,7 @@
                 removePatient(entry.id, entry.patient.firstName + ' ' + entry.patient.lastName)
               "
             >
-              🚫 Remove
+              Remove
             </button>
           </div>
         </div>

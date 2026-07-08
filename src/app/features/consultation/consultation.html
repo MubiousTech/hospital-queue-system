@@ -40,7 +40,7 @@
         </div>
 
         <div class="info-card" *ngIf="currentRecord">
-          <h3>📋 Today's Triage</h3>
+          <h3>Today's Triage</h3>
           <p><strong>Condition:</strong> {{ currentRecord.medicalCondition }}</p>
           <p><strong>Symptoms:</strong> {{ currentRecord.symptoms }}</p>
           <p><strong>Priority:</strong> {{ currentRecord.priority }}</p>
@@ -58,14 +58,14 @@
         </div>
 
         <div class="info-card history-card">
-          <h3>📁 Past Medical History</h3>
+          <h3>Past Medical History</h3>
 
           <div class="no-history" *ngIf="pastHistory.length === 0">
             No previous visits on record.
           </div>
 
           <div class="history-entry" *ngFor="let record of pastHistory">
-            <div class="history-entry-date">📅 {{ record.visitDate | date:'mediumDate' }}</div>
+            <div class="history-entry-date">{{ record.visitDate | date:'mediumDate' }}</div>
             <p *ngIf="record.diagnosis"><strong>Diagnosis:</strong> {{ record.diagnosis }}</p>
             <p *ngIf="record.treatment"><strong>Treatment:</strong> {{ record.treatment }}</p>
             <p *ngIf="record.medications"><strong>Medications:</strong> {{ record.medications }}</p>
@@ -77,7 +77,7 @@
       <!-- RIGHT: Consultation Form -->
       <div class="consultation-form-area">
         <form [formGroup]="consultForm" (ngSubmit)="onSubmit()" class="consult-form">
-          <h3>📝 Consultation Notes</h3>
+          <h3>Consultation Notes</h3>
 
           <div class="form-group">
             <label>Diagnosis <span class="required">*</span></label>
@@ -131,8 +131,8 @@
           <div class="form-actions">
             <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
             <button type="submit" class="btn-primary" [disabled]="isSaving">
-              <span *ngIf="!isSaving">✅ Complete Consultation</span>
-              <span *ngIf="isSaving">⏳ Saving...</span>
+              <span *ngIf="!isSaving">Complete Consultation</span>
+              <span *ngIf="isSaving">Saving...</span>
             </button>
           </div>
         </form>

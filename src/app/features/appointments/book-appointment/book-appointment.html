@@ -3,7 +3,7 @@
   <!-- Header -->
   <div class="page-header">
     <div>
-      <h1>📅 Book Appointment</h1>
+      <h1>Book Appointment</h1>
       <p>Schedule your visit with our medical professionals</p>
     </div>
     <button class="btn btn-secondary" routerLink="/appointments">← Back</button>
@@ -11,24 +11,24 @@
 
   <!-- Success State -->
   <div *ngIf="showSuccess" class="success-card">
-    <div class="success-icon">✅</div>
+    <div class="success-icon"></div>
     <h2>Appointment Booked Successfully!</h2>
     <p>Your appointment has been confirmed.</p>
     <div class="booking-summary">
       <div class="summary-row">
-        <span>🩺 Doctor</span>
+        <span>Doctor</span>
         <strong>{{ appointmentForm.get('doctorName')?.value }}</strong>
       </div>
       <div class="summary-row">
-        <span>📅 Date</span>
+        <span>Date</span>
         <strong>{{ appointmentForm.get('appointmentDate')?.value | date:'fullDate' }}</strong>
       </div>
       <div class="summary-row">
-        <span>⏰ Time</span>
+        <span>Time</span>
         <strong>{{ appointmentForm.get('appointmentTime')?.value }}</strong>
       </div>
       <div class="summary-row">
-        <span>🔖 Booking ID</span>
+        <span>Booking ID</span>
         <strong>{{ bookedAppointmentId }}</strong>
       </div>
     </div>
@@ -40,7 +40,7 @@
 
     <!-- Doctor Cards -->
     <div class="form-section">
-      <h2>👨‍⚕️ Select a Doctor</h2>
+      <h2>Select a Doctor</h2>
       <div class="doctor-grid">
         <div
           *ngFor="let doctor of doctors"
@@ -53,10 +53,10 @@
             <strong>{{ doctor.name }}</strong>
             <span class="specialization">{{ doctor.specialization }}</span>
             <span class="schedule-info">
-              📅 {{ getWorkingDaysLabel(doctor) }}
+              {{ getWorkingDaysLabel(doctor) }}
             </span>
             <span class="schedule-info">
-              🕐 {{ getWorkingHoursLabel(doctor) }}
+              {{ getWorkingHoursLabel(doctor) }}
             </span>
           </div>
           <div class="selected-check" *ngIf="selectedDoctor?.name === doctor.name">✓</div>
@@ -71,7 +71,7 @@
 
       <!-- Personal Information -->
       <div class="form-section">
-        <h2>👤 Personal Information</h2>
+        <h2>Personal Information</h2>
         <div class="form-row">
           <div class="form-group">
             <label>Full Name <span class="required">*</span></label>
@@ -124,7 +124,7 @@
 
       <!-- Appointment Details -->
       <div class="form-section">
-        <h2>🩺 Appointment Details</h2>
+        <h2>Appointment Details</h2>
 
         <div class="form-group">
           <label>Appointment Type <span class="required">*</span></label>
@@ -170,7 +170,7 @@
 
           <!-- Doctor unavailable on this day -->
           <div *ngIf="isDoctorUnavailable" class="unavailable-notice">
-            ⚠️ {{ f['doctorName'].value }} does not work on this day.
+            {{ f['doctorName'].value }} does not work on this day.
             <br/>
             <small>Working days: {{ selectedDoctor ? getWorkingDaysLabel(selectedDoctor) : '' }}</small>
           </div>
@@ -245,7 +245,7 @@
           [disabled]="isSubmitting"
           (click)="onSubmit()"
         >
-          <span *ngIf="!isSubmitting">📅 Book Appointment</span>
+          <span *ngIf="!isSubmitting">Book Appointment</span>
           <span *ngIf="isSubmitting">⏳ Booking...</span>
         </button>
       </div>

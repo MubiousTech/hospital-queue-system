@@ -1,6 +1,6 @@
 <div class="admin-container">
   <div class="admin-header">
-    <h1>🔧 Admin Panel</h1>
+    <h1>Admin Panel</h1>
     <button class="btn-back" (click)="navigateToDashboard()">← Back to Dashboard</button>
   </div>
 
@@ -11,20 +11,20 @@
       [class.active]="activeTab === 'overview'"
       (click)="switchTab('overview')"
     >
-      📊 Overview
+      Overview
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'users'" (click)="switchTab('users')">
-      👥 Users
+      Users
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'queue'" (click)="switchTab('queue')">
-      📋 Queue History
+      Queue History
     </button>
     <button
       class="tab-btn"
       [class.active]="activeTab === 'settings'"
       (click)="switchTab('settings')"
     >
-      ⚙️ Settings
+      Settings
     </button>
   </div>
 
@@ -50,7 +50,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">💉</div>
+        <div class="stat-icon"></div>
         <div class="stat-info">
           <h3>Active Nurses</h3>
           <p class="stat-number">{{ getNurseCount() }}</p>
@@ -58,7 +58,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">🗂️</div>
+        <div class="stat-icon"></div>
         <div class="stat-info">
           <h3>Record Officers</h3>
           <p class="stat-number">{{ getRecordOfficerCount() }}</p>
@@ -66,7 +66,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">📊</div>
+        <div class="stat-icon"></div>
         <div class="stat-info">
           <h3>Queue Status</h3>
           <p class="stat-number">{{ queueStats?.totalInQueue || 0 }}</p>
@@ -74,7 +74,7 @@
       </div>
 
       <div class="stat-card critical">
-        <div class="stat-icon">🚨</div>
+        <div class="stat-icon"></div>
         <div class="stat-info">
           <h3>Critical Cases</h3>
           <p class="stat-number">{{ queueStats?.criticalCount || 0 }}</p>
@@ -82,7 +82,7 @@
       </div>
 
       <div class="stat-card success">
-        <div class="stat-icon">✅</div>
+        <div class="stat-icon"></div>
         <div class="stat-info">
           <h3>Completed Today</h3>
           <p class="stat-number">{{ queueStats?.patientsServedToday || 0 }}</p>
@@ -100,14 +100,14 @@
   <div *ngIf="activeTab === 'users'" class="tab-content">
     <div class="users-header">
       <h2>User Management</h2>
-      <button class="btn btn-primary" (click)="addNewUser()">➕ Add New User</button>
+      <button class="btn btn-primary" (click)="addNewUser()">Add New User</button>
     </div>
 
     <div class="filters">
       <input
         type="text"
         class="search-input"
-        placeholder="🔍 Search by name or email..."
+        placeholder="Search by name or email..."
         [(ngModel)]="searchTerm"
         (input)="filterUsers()"
       />
@@ -162,7 +162,6 @@
                 (click)="deleteUser(user.id)"
                 title="Delete User"
               >
-                🗑️
               </button>
             </td>
           </tr>
@@ -225,7 +224,7 @@
 
     <div class="settings-sections">
       <div class="setting-card">
-        <h3>🔔 Notifications</h3>
+        <h3>Notifications</h3>
         <div class="setting-option">
           <label>
             <input type="checkbox" checked />
@@ -241,7 +240,7 @@
       </div>
 
       <div class="setting-card">
-        <h3>⏰ Queue Settings</h3>
+        <h3>Queue Settings</h3>
         <div class="setting-option">
           <label>Average consultation time (minutes):</label>
           <input type="number" class="setting-input" value="15" />
@@ -253,7 +252,7 @@
       </div>
 
       <div class="setting-card">
-        <h3>🏥 Hospital Information</h3>
+        <h3>Hospital Information</h3>
         <div class="setting-option">
           <label>Hospital Name:</label>
           <input type="text" class="setting-input" value="General Hospital Lagos" />
@@ -265,7 +264,7 @@
       </div>
 
       <div class="setting-card">
-        <h3>🔒 Security</h3>
+        <h3>Security</h3>
         <div class="setting-option">
           <label>
             <input type="checkbox" checked />
@@ -281,6 +280,6 @@
       </div>
     </div>
 
-    <button class="btn btn-primary save-btn">💾 Save Settings</button>
+    <button class="btn btn-primary save-btn">Save Settings</button>
   </div>
 </div>

@@ -1,7 +1,7 @@
 <div class="login-container">
   <div class="login-card">
     <div class="login-header">
-      <span class="logo">🏥</span>
+      <span class="logo"></span>
       <h2 *ngIf="mode === 'patient'">Patient Registration</h2>
       <h2 *ngIf="mode === 'staff'">Staff Registration</h2>
       <p *ngIf="mode === 'patient'">Create your patient account</p>
@@ -101,7 +101,7 @@
 
       <button type="submit" class="login-btn" [disabled]="isSubmitting">
         <span *ngIf="!isSubmitting">Register</span>
-        <span *ngIf="isSubmitting">⏳ Registering...</span>
+        <span *ngIf="isSubmitting">Registering...</span>
       </button>
       <p class="register-link">Already have an account? <a routerLink="/login">Login here</a></p>
     </form>

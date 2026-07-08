@@ -2,23 +2,23 @@
 
   <!-- Header -->
   <div class="record-header">
-    <h2>🗂️ Patient Records Management</h2>
+    <h2>Patient Records Management</h2>
     <p>Register patients, manage records, and view medical history</p>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="switchTab('overview')">
-      📊 Overview
+      Overview
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'register'" (click)="switchTab('register')">
-      ➕ Register Patient
+      Register Patient
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'search'" (click)="switchTab('search')">
-      🔍 Search / Manage
+      Search / Manage
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="switchTab('history')">
-      📋 Medical History
+      Medical History
     </button>
   </div>
 
@@ -26,7 +26,7 @@
   <div class="tab-content" *ngIf="activeTab === 'overview'">
     <div class="stats-grid" *ngIf="!isLoadingStats">
       <div class="stat-card total">
-        <div class="stat-icon">👥</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <h3>{{ totalPatients }}</h3>
           <p>Total Registered Patients</p>
@@ -34,7 +34,7 @@
       </div>
 
       <div class="stat-card records">
-        <div class="stat-icon">📁</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <h3>{{ totalMedicalRecords }}</h3>
           <p>Total Medical Records</p>
@@ -42,7 +42,7 @@
       </div>
 
       <div class="stat-card new">
-        <div class="stat-icon">🆕</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <h3>{{ newToday }}</h3>
           <p>New Patients Today</p>
@@ -50,7 +50,7 @@
       </div>
 
       <div class="stat-card returning">
-        <div class="stat-icon">🔄</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <h3>{{ returningPatients }}</h3>
           <p>Returning Patients</p>
@@ -63,8 +63,8 @@
     <div class="quick-actions">
       <h3>Quick Actions</h3>
       <div class="quick-actions-buttons">
-        <button class="btn-quick" (click)="switchTab('register')">➕ Register New Patient</button>
-        <button class="btn-quick" (click)="switchTab('search')">🔍 Search Patients</button>
+        <button class="btn-quick" (click)="switchTab('register')">Register New Patient</button>
+        <button class="btn-quick" (click)="switchTab('search')">Search Patients</button>
       </div>
     </div>
   </div>
@@ -74,7 +74,7 @@
     <form [formGroup]="registerForm" (ngSubmit)="onRegisterSubmit()" class="record-form">
 
       <div class="form-section">
-        <h3>👤 Personal Information</h3>
+        <h3>Personal Information</h3>
 
         <div class="form-row">
           <div class="form-group">
@@ -122,7 +122,7 @@
       </div>
 
       <div class="form-section">
-        <h3>🏠 Demographic Information</h3>
+        <h3>Demographic Information</h3>
 
         <div class="form-group full-width">
           <label>Address</label>
@@ -161,7 +161,7 @@
       </div>
 
       <div class="form-section">
-        <h3>🩺 Clinical Baseline (Optional)</h3>
+        <h3>Clinical Baseline (Optional)</h3>
 
         <div class="form-row">
           <div class="form-group">
@@ -194,8 +194,8 @@
       <div class="form-actions">
         <button type="button" class="btn-reset" (click)="resetRegisterForm()">Reset Form</button>
         <button type="submit" class="btn-submit" [disabled]="isRegistering">
-          <span *ngIf="!isRegistering">➕ Register Patient</span>
-          <span *ngIf="isRegistering">⏳ Registering...</span>
+          <span *ngIf="!isRegistering">Register Patient</span>
+          <span *ngIf="isRegistering">Registering...</span>
         </button>
       </div>
     </form>
@@ -208,7 +208,7 @@
         type="text"
         [(ngModel)]="searchTerm"
         (input)="onSearchChange()"
-        placeholder="🔍 Search by name, phone, or patient number..."
+        placeholder="Search by name, phone, or patient number..."
       />
     </div>
 
@@ -224,13 +224,13 @@
           <span class="patient-number-badge">{{ patient.patientNumber }}</span>
           <div class="patient-row-info">
             <strong>{{ patient.firstName }} {{ patient.lastName }}</strong>
-            <span class="patient-row-sub">{{ patient.age }} yrs, {{ patient.gender }} · 📞 {{ patient.phoneNumber }}</span>
+            <span class="patient-row-sub">{{ patient.age }} yrs, {{ patient.gender }} · {{ patient.phoneNumber }}</span>
           </div>
         </div>
         <div class="patient-row-actions">
-          <button class="btn-row-action view" (click)="viewHistory(patient)">📋 History</button>
-          <button class="btn-row-action edit" (click)="openEdit(patient)">✏️ Edit</button>
-          <button class="btn-row-action delete" (click)="deletePatient(patient)">🗑️ Delete</button>
+          <button class="btn-row-action view" (click)="viewHistory(patient)">History</button>
+          <button class="btn-row-action edit" (click)="openEdit(patient)">Edit</button>
+          <button class="btn-row-action delete" (click)="deletePatient(patient)">Delete</button>
         </div>
       </div>
     </div>
@@ -259,7 +259,7 @@
 
       <div class="history-record-card" *ngFor="let record of historyRecords">
         <div class="history-record-header">
-          <span class="history-date">📅 {{ record.visitDate | date:'medium' }}</span>
+          <span class="history-date">{{ record.visitDate | date:'medium' }}</span>
           <span class="history-priority" *ngIf="record.priority">{{ record.priority }}</span>
         </div>
 
@@ -293,7 +293,7 @@
   <div class="modal-overlay" *ngIf="editingPatient" (click)="closeEdit()">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>✏️ Edit Patient — {{ editingPatient.patientNumber }}</h3>
+        <h3>Edit Patient — {{ editingPatient.patientNumber }}</h3>
         <button class="modal-close" (click)="closeEdit()">✕</button>
       </div>
 
@@ -371,14 +371,14 @@
         </div>
 
         <div class="modal-note">
-          ℹ️ Clinical fields (blood group, genotype, allergies, chronic conditions) can only be updated by clinical staff.
+          ℹClinical fields (blood group, genotype, allergies, chronic conditions) can only be updated by clinical staff.
         </div>
 
         <div class="form-actions">
           <button type="button" class="btn-cancel" (click)="closeEdit()">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="isSaving">
-            <span *ngIf="!isSaving">💾 Save Changes</span>
-            <span *ngIf="isSaving">⏳ Saving...</span>
+            <span *ngIf="!isSaving">Save Changes</span>
+            <span *ngIf="isSaving">Saving...</span>
           </button>
         </div>
       </form>
