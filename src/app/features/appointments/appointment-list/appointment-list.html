@@ -1,22 +1,20 @@
 <!-- Loading state -->
-<div *ngIf="isLoading" style="text-align:center; padding: 3rem;">
+<div *ngIf="isLoading" style="text-align: center; padding: 3rem">
   <p>Loading appointments...</p>
 </div>
 
 <!-- Main content — only show when not loading -->
 <div *ngIf="!isLoading">
   <!-- your existing HTML goes here -->
-   
-</div><div class="appointments-container">
+</div>
+<div class="appointments-container">
   <div class="appointments-header">
     <div class="header-left">
       <h1>My Appointments</h1>
       <p>Manage and view all your scheduled appointments</p>
     </div>
     <div class="header-right">
-      <button class="btn btn-primary" routerLink="/appointments/book">
-        Book New Appointment
-      </button>
+      <button class="btn btn-primary" routerLink="/appointments/book">Book New Appointment</button>
     </div>
   </div>
 
@@ -50,9 +48,9 @@
   <!-- Filters -->
   <div class="filters-section">
     <div class="filter-group">
-      <input 
-        type="text" 
-        class="search-input" 
+      <input
+        type="text"
+        class="search-input"
         placeholder=" Search by patient, doctor, or reason..."
         [(ngModel)]="searchTerm"
         (input)="applyFilters()"
@@ -60,10 +58,7 @@
     </div>
 
     <div class="filter-group">
-      <select 
-        class="filter-select" 
-        [(ngModel)]="filterStatus"
-        (change)="applyFilters()">
+      <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilters()">
         <option value="all">All Status</option>
         <option value="SCHEDULED">Scheduled</option>
         <option value="CONFIRMED">Confirmed</option>
@@ -74,15 +69,13 @@
     </div>
 
     <div class="filter-group">
-      <input 
-        type="date" 
-        class="filter-date" 
-        [(ngModel)]="filterDate"
-        (change)="applyFilters()"
-      />
+      <input type="date" class="filter-date" [(ngModel)]="filterDate" (change)="applyFilters()" />
     </div>
 
-    <button class="btn-clear" (click)="filterStatus='all'; filterDate=''; searchTerm=''; applyFilters()">
+    <button
+      class="btn-clear"
+      (click)="filterStatus = 'all'; filterDate = ''; searchTerm = ''; applyFilters()"
+    >
       Clear Filters
     </button>
   </div>
@@ -98,8 +91,8 @@
       </button>
     </div>
 
-    <div 
-      *ngFor="let appointment of filteredAppointments" 
+    <div
+      *ngFor="let appointment of filteredAppointments"
       class="appointment-card"
       [class.past]="isPast(appointment)"
     >
@@ -129,7 +122,7 @@
           <div class="info-row">
             <div class="info-item">
               <span class="info-label">Date:</span>
-              <span class="info-value">{{ appointment.appointmentDate | date:'fullDate' }}</span>
+              <span class="info-value">{{ appointment.appointmentDate | date: 'fullDate' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Time:</span>
@@ -165,23 +158,38 @@
       </div>
 
       <div class="appointment-actions">
-        <button 
-          *ngIf="appointment.status === AppointmentStatus.SCHEDULED && isUpcoming(appointment)"
+        <!-- Confirm: only Admin and Doctor -->
+        <button
+          *ngIf="
+            appointment.status === AppointmentStatus.SCHEDULED &&
+            isUpcoming(appointment) &&
+            currentUserRole !== 'patient'
+          "
           class="btn-action btn-confirm"
-          (click)="confirmAppointment(appointment.id)">
+          (click)="confirmAppointment(appointment.id)"
+        >
           Confirm
         </button>
 
-        <button 
-          *ngIf="(appointment.status === AppointmentStatus.SCHEDULED || appointment.status === AppointmentStatus.CONFIRMED) && isUpcoming(appointment)"
+        <!-- Cancel: all roles can cancel their own appointments -->
+        <button
+          *ngIf="
+            (appointment.status === AppointmentStatus.SCHEDULED ||
+              appointment.status === AppointmentStatus.CONFIRMED) &&
+            isUpcoming(appointment)
+          "
           class="btn-action btn-cancel"
-          (click)="cancelAppointment(appointment.id)">
+          (click)="cancelAppointment(appointment.id)"
+        >
           Cancel
         </button>
 
-        <button 
+        <!-- Delete: only Admin and Doctor, not patients -->
+        <button
+          *ngIf="currentUserRole !== 'patient'"
           class="btn-action btn-delete"
-          (click)="deleteAppointment(appointment.id)">
+          (click)="deleteAppointment(appointment.id)"
+        >
           Delete
         </button>
       </div>
@@ -190,8 +198,6 @@
 
   <!-- Back to Dashboard -->
   <div class="back-section">
-    <button class="btn btn-secondary" routerLink="/dashboard">
-      ← Back to Dashboard
-    </button>
+    <button class="btn btn-secondary" routerLink="/dashboard">← Back to Dashboard</button>
   </div>
 </div>
