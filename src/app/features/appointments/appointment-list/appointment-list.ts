@@ -20,6 +20,7 @@ export class AppointmentList implements OnInit, OnDestroy {
   isLoading = true;
 
   currentUserRole: string = '';
+  currentUserEmail: string = '';
 
   AppointmentStatus = AppointmentStatus;
 
@@ -38,6 +39,7 @@ export class AppointmentList implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.authService.currentUser.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUserRole = user?.role || '';
+      this.currentUserEmail = user?.email || '';
     });
     // Subscribe first so any emission updates the UI
     this.appointmentService.appointments$
@@ -57,7 +59,16 @@ export class AppointmentList implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
-    this.filteredAppointments = this.appointments.filter((apt) => {
+    let filtered = this.appointments;
+
+    // Patients only see their own appointments
+    if (this.currentUserRole === 'patient') {
+      filtered = filtered.filter(
+        (apt) => apt.patientEmail?.toLowerCase() === this.currentUserEmail.toLowerCase(),
+      );
+    }
+
+    this.filteredAppointments = filtered.filter((apt) => {
       const matchesStatus = this.filterStatus === 'all' || apt.status === this.filterStatus;
 
       let matchesDate = true;
