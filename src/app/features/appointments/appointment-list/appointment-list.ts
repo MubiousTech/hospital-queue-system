@@ -40,6 +40,7 @@ export class AppointmentList implements OnInit, OnDestroy {
     this.authService.currentUser.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUserRole = user?.role || '';
       this.currentUserEmail = user?.email || '';
+      this.applyFilters();
     });
     // Subscribe first so any emission updates the UI
     this.appointmentService.appointments$
@@ -60,12 +61,20 @@ export class AppointmentList implements OnInit, OnDestroy {
 
   applyFilters(): void {
     let filtered = this.appointments;
+    console.log('🟡 applyFilters called — role:', this.currentUserRole, 'email:', this.currentUserEmail);
 
     // Patients only see their own appointments
     if (this.currentUserRole === 'patient') {
       filtered = filtered.filter(
         (apt) => apt.patientEmail?.toLowerCase() === this.currentUserEmail.toLowerCase(),
       );
+      console.log('🔵 Filtered count:', filtered.length);
+      console.log('🔵 Current user email:', JSON.stringify(this.currentUserEmail));
+      console.log(
+        '🔵 Appointment emails:',
+        JSON.stringify(this.appointments.map((a) => a.patientEmail)),
+      );
+      console.log('🔵 Current user role:', JSON.stringify(this.currentUserRole));
     }
 
     this.filteredAppointments = filtered.filter((apt) => {
